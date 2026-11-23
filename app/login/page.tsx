@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import HeroDashboardMockup from "@/components/HeroDashboardMockup";
 import { useAuth } from "@/context/AuthContext";
@@ -12,27 +13,21 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Sparkles,
 } from "lucide-react";
 
 export default function LoginPage() {
   const { loginWithEmail, signUpWithEmail, isLoading } = useAuth();
 
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const pathname = usePathname();
+  const [mode, setMode] = useState<"login" | "signup">(
+    pathname === "/signup" ? "signup" : "login",
+  );
   const [identifier, setIdentifier] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // 1-Click Demo Fill
-  const handleQuickDemo = async () => {
-    setErrorMessage(null);
-    setIdentifier("najwa.finance@student.ac.id");
-    setPassword("password123");
-    await loginWithEmail("najwa.finance@student.ac.id", "password123");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +44,7 @@ export default function LoginPage() {
         ? identifier.trim()
         : `${identifier.trim().toLowerCase()}@sakuwise.id`;
 
-      const res = await loginWithEmail(emailValue, password);
+      const res = await loginWithEmail(emailValue, password, rememberMe);
       if (!res.success && res.error) {
         setErrorMessage(res.error);
       }
@@ -107,7 +102,7 @@ export default function LoginPage() {
 
           {/* Error Message Alert */}
           {errorMessage && (
-            <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5 animate-in fade-in duration-150">
+            <div role="alert" className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5 animate-in fade-in duration-150">
               <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1 font-medium leading-relaxed">{errorMessage}</div>
             </div>
@@ -119,18 +114,21 @@ export default function LoginPage() {
             {/* Name field only in signup mode */}
             {mode === "signup" && (
               <div>
-                <label className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
+                <label htmlFor="name" className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
                   Nama lengkap
                 </label>
                 <div className="relative">
                   <UserIcon className="w-4 h-4 text-[#8C9E91] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
+                    id="name"
+                    name="name"
+                    autoComplete="name"
                     type="text"
                     required
                     placeholder="Contoh: Najwa"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-[#D5E1D7] text-xs sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-1 focus:ring-[#224431] bg-[#FAF8F5]/60 focus:bg-white transition-all"
+                    className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-[#D5E1D7] text-base sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-2 focus:ring-[#224431]/40 bg-[#FAF8F5]/60 focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -138,42 +136,48 @@ export default function LoginPage() {
 
             {/* Email / Username field */}
             <div>
-              <label className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
+              <label htmlFor="identifier" className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
                 Email atau nama pengguna
               </label>
               <div className="relative">
                 <UserIcon className="w-4 h-4 text-[#8C9E91] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
+                  id="identifier"
+                  name="identifier"
+                  autoComplete="username"
                   type="text"
                   required
                   placeholder="Masukkan email atau nama pengguna"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-[#D5E1D7] text-xs sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-1 focus:ring-[#224431] bg-[#FAF8F5]/60 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-[#D5E1D7] text-base sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-2 focus:ring-[#224431]/40 bg-[#FAF8F5]/60 focus:bg-white transition-all"
                 />
               </div>
             </div>
 
             {/* Password field */}
             <div>
-              <label className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
+              <label htmlFor="password" className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
                 Kata sandi
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-[#8C9E91] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
+                  id="password"
+                  name="password"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
                   type={showPassword ? "text" : "password"}
                   required
                   placeholder="Masukkan kata sandi"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-[#D5E1D7] text-xs sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-1 focus:ring-[#224431] bg-[#FAF8F5]/60 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-[#D5E1D7] text-base sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-2 focus:ring-[#224431]/40 bg-[#FAF8F5]/60 focus:bg-white transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8C9E91] hover:text-[#1E3A2B] focus:outline-none cursor-pointer"
-                  aria-label="Toggle password visibility"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8C9E91] hover:text-[#1E3A2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#224431] rounded cursor-pointer"
+                  aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -194,7 +198,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert("Silakan gunakan tombol akun demo atau masukkan email/kata sandi Anda.")}
+                  onClick={() => setErrorMessage("Fitur atur ulang kata sandi belum tersedia. Jika lupa, daftar dengan email baru.")}
                   className="text-xs text-[#224431] font-semibold hover:underline cursor-pointer"
                 >
                   Lupa kata sandi?
@@ -251,30 +255,14 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Quick Demo Pill Helper */}
-          <div className="mt-8 pt-6 border-t border-[#F0F4F1] text-center">
-            <button
-              type="button"
-              onClick={handleQuickDemo}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#20743E] bg-[#E7F6EC] hover:bg-[#D4EEDC] border border-[#C6E6D0] transition-colors cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#E08C38] fill-[#E08C38]" />
-              <span>Gunakan Akun Demo (Najwa · 1 Klik)</span>
-            </button>
-          </div>
-
         </div>
 
         {/* Bottom: Left Footer Links & Copyright */}
         <div className="pt-6 border-t border-[#F0F4F1] flex flex-col sm:flex-row items-center justify-between text-xs text-[#7A8E80] gap-3">
           <div className="flex items-center gap-4">
-            <a href="#privasi" className="hover:text-[#1E3A2B] transition-colors">
-              Kebijakan Privasi
-            </a>
+            <span>Kebijakan Privasi</span>
             <span>•</span>
-            <a href="#syarat" className="hover:text-[#1E3A2B] transition-colors">
-              Syarat & Ketentuan
-            </a>
+            <span>Syarat & Ketentuan</span>
           </div>
           <p>© 2026 Sakuwise. Semua hak dilindungi.</p>
         </div>

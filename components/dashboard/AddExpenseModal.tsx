@@ -2,54 +2,78 @@
 
 import React, { useState } from "react";
 import { X, Check } from "lucide-react";
-import { Transaction } from "./OverviewView";
+import { useFinance, todayISO } from "@/context/FinanceContext";
 
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveExpense: (expense: Omit<Transaction, "id">) => void;
 }
 
-export default function AddExpenseModal({
-  isOpen,
-  onClose,
-  onSaveExpense,
-}: AddExpenseModalProps) {
+export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProps) {
+  const { categories, addTransaction } = useFinance();
+
   const [amountStr, setAmountStr] = useState("");
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<Transaction["category"]>("Food & drinks");
-  const [date, setDate] = useState("17 November 2026");
+  const [category, setCategory] = useState("");
+  const [date, setDate] = useState(() => todayISO());
   const [note, setNote] = useState("");
+  const [error, setError] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   if (!isOpen) return null;
 
+  // Fall back to the first category if none is chosen yet or the chosen one was deleted
+  const activeCategory = categories.some((c) => c.name === category)
+    ? category
+    : categories[0]?.name ?? "";
+
+  const resetForm = () => {
+    setAmountStr("");
+    setName("");
+    setNote("");
+    setError("");
+    setDate(todayISO());
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanAmount = parseInt(amountStr.replace(/[^0-9]/g, ""), 10);
-    if (!name.trim() || isNaN(cleanAmount) || cleanAmount <= 0) return;
 
-    onSaveExpense({
-      name: name.trim(),
+    if (!activeCategory) {
+      setError("Add a budget category first in Monthly Budget.");
+      return;
+    }
+
+    const result = addTransaction({
+      name,
       amount: cleanAmount,
-      category,
-      time: `Today · ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`,
+      category: activeCategory,
+      date,
+      note,
     });
 
+    if (!result.ok) {
+      setError(result.error || "Could not save this expense.");
+      return;
+    }
+
+    setError("");
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
+      resetForm();
       onClose();
-      setAmountStr("");
-      setName("");
-      setNote("");
-    }, 600);
+    }, 700);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-[#DCE4DD] animate-in zoom-in-95 duration-150">
-        
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#F0F4F0]">
           <div>
@@ -58,8 +82,9 @@ export default function AddExpenseModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-black/5"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -71,7 +96,7 @@ export default function AddExpenseModal({
               <Check className="w-6 h-6 stroke-[3]" />
             </div>
             <p className="text-sm font-bold text-[#1E3A2B]">Pengeluaran Berhasil Dicatat!</p>
-            <p className="text-xs text-[#6B8071] mt-1">Saldo dan grafik anggaran telah diperbarui.</p>
+            <p className="text-xs text-[#6B8071] mt-1">Saldo dan batas harian telah diperbarui.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -86,6 +111,7 @@ export default function AddExpenseModal({
                 </span>
                 <input
                   type="text"
+                  inputMode="numeric"
                   required
                   autoFocus
                   placeholder="0"
@@ -120,16 +146,16 @@ export default function AddExpenseModal({
                 Category *
               </label>
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as Transaction["category"])}
+                value={activeCategory}
+                onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5E1D7] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431] bg-white cursor-pointer"
               >
-                <option value="Food & drinks">Food & drinks (Makan & Minum)</option>
-                <option value="Transport">Transport (Transportasi)</option>
-                <option value="Academic needs">Academic needs (Kebutuhan Kuliah)</option>
-                <option value="Accommodation">Accommodation (Kos & Tagihan)</option>
-                <option value="Personal">Personal (Pribadi & Perawatan)</option>
-                <option value="Emergency fund">Emergency fund (Dana Darurat)</option>
+                {categories.length === 0 && <option value="">No categories yet</option>}
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -139,8 +165,9 @@ export default function AddExpenseModal({
                 Date
               </label>
               <input
-                type="text"
+                type="date"
                 value={date}
+                max={todayISO()}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl border border-[#D5E1D7] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white"
               />
@@ -160,11 +187,17 @@ export default function AddExpenseModal({
               />
             </div>
 
+            {error && (
+              <p className="text-xs font-semibold text-[#B4491F] bg-[#FBE9E2] rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+
             {/* Buttons */}
             <div className="pt-2 flex items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-1/2 py-2.5 px-4 rounded-xl text-xs font-semibold text-[#4F6253] bg-[#FAF8F5] hover:bg-black/5 transition-colors cursor-pointer"
               >
                 Cancel
@@ -177,12 +210,11 @@ export default function AddExpenseModal({
               </button>
             </div>
 
-            <p className="text-[10px] text-center text-[#7E8F82]">
+            <p className="text-[11px] text-center text-[#7E8F82]">
               Required: amount, description, and category.
             </p>
           </form>
         )}
-
       </div>
     </div>
   );

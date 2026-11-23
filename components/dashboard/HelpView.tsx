@@ -9,7 +9,6 @@ import {
   ChevronDown,
   ChevronRight,
   Mail,
-  ExternalLink,
   Sparkles,
   Shield,
   Smartphone,

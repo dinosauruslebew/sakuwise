@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Logo from "../Logo";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -31,6 +31,26 @@ export default function Sidebar({
 }: SidebarProps) {
   const { user, logout } = useAuth();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close the profile dropdown on outside click or Escape
+  useEffect(() => {
+    if (!profileDropdownOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setProfileDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [profileDropdownOpen]);
 
   const navItems = [
     { id: "overview", label: "Overview", icon: LayoutGrid },
@@ -82,6 +102,7 @@ export default function Sidebar({
                   key={item.id}
                   type="button"
                   onClick={() => handleNavClick(item.id)}
+                  aria-current={isActive ? "page" : undefined}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
                     isActive
                       ? "bg-[#E5ECE6] text-[#1E3A2B] shadow-2xs font-bold"
@@ -113,7 +134,7 @@ export default function Sidebar({
                 Your future self will thank you.
               </p>
             </div>
-            <p className="text-[10px] text-[#5C7063] leading-tight">
+            <p className="text-[11px] text-[#5C7063] leading-tight">
               A little saved goes a long way.
             </p>
           </div>
@@ -144,12 +165,12 @@ export default function Sidebar({
           </div>
 
           {/* Active User Profile & Logout (Pinned and perfectly visible on all screens) */}
-          <div className="relative pt-1">
+          <div className="relative pt-1" ref={profileRef}>
             {profileDropdownOpen && (
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl shadow-xl border border-[#DCE4DD] p-2 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150 z-30">
                 <div className="px-3 py-2 border-b border-[#F0F4F1]">
                   <p className="text-xs font-bold text-[#1E3A2B]">{displayName}</p>
-                  <p className="text-[10px] text-[#718275] truncate">
+                  <p className="text-[11px] text-[#718275] truncate">
                     {user?.email || "najwa.finance@student.ac.id"}
                   </p>
                 </div>
@@ -159,7 +180,7 @@ export default function Sidebar({
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Keluar Akun (Logout)</span>
+                  <span>Log out</span>
                 </button>
               </div>
             )}
@@ -177,8 +198,8 @@ export default function Sidebar({
                   <p className="text-xs font-bold text-[#1E3A2B] truncate group-hover:text-[#12281C]">
                     {displayName}
                   </p>
-                  <p className="text-[10px] text-[#718275] truncate">
-                    {displayRole} · {displayName}
+                  <p className="text-[11px] text-[#718275] truncate">
+                    {displayRole}
                   </p>
                 </div>
               </div>
