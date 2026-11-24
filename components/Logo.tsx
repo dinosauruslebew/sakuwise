@@ -22,13 +22,12 @@ export default function Logo({
 
   return (
     <div className={`inline-flex items-center select-none ${className}`}>
-      <img
+      <Image
         src="/logo.png"
         alt="Sakuwise - Manage your money, wisely"
+        width={826}
+        height={302}
         className={`${sizeClasses[size]} w-auto object-contain transition-transform duration-200 hover:scale-[1.02]`}
-        onError={(e) => {
-          (e.currentTarget as HTMLImageElement).src = "/logo.svg";
-        }}
       />
     </div>
   );

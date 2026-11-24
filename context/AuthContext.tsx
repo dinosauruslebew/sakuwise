@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
@@ -20,51 +20,63 @@ interface AuthResponse {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  loginWithEmail: (email: string, pass: string) => Promise<AuthResponse>;
+  loginWithEmail: (email: string, pass: string, remember?: boolean) => Promise<AuthResponse>;
   signUpWithEmail: (name: string, email: string, pass: string) => Promise<AuthResponse>;
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
 }
+
+const DEFAULT_USERS_DB: Record<string, { name: string; passwordHash: string; role: string }> = {
+  "najwa.finance@student.ac.id": {
+    name: "Najwa",
+    passwordHash: "password123",
+    role: "Student account",
+  },
+  "najwa@sakuwise.id": {
+    name: "Najwa",
+    passwordHash: "password123",
+    role: "Student account",
+  },
+  "admin@sakuwise.id": {
+    name: "Admin Sakuwise",
+    passwordHash: "admin123",
+    role: "Akun Sakuwise",
+  },
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // true: session survives closing the browser (localStorage); false: only this browser session (sessionStorage)
+  const rememberRef = useRef(true);
   const router = useRouter();
 
   // Load existing session & registered accounts from storage
   useEffect(() => {
     try {
-      // 1. Check Supabase session first if configured
-      if (isSupabaseConfigured && supabase) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            const u: User = {
-              id: session.user.id,
-              name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Pengguna Sakuwise",
-              email: session.user.email || "",
-              avatar: session.user.user_metadata?.avatar_url,
-              role: "Personal account",
-            };
-            setUser(u);
-            localStorage.setItem("sakuwise_auth_user", JSON.stringify(u));
-            setIsLoading(false);
-            return;
-          }
-        });
-      }
-
-      // 2. Load active session from localStorage
+      // 1. Load active session
       const stored = localStorage.getItem("sakuwise_auth_user");
       if (stored) {
         setUser(JSON.parse(stored));
       } else {
-        setUser(null);
+        // Fallback default logged-in session for seamless preview if user navigates to dashboard directly
+        setUser({
+          id: "usr_najwa_default",
+          name: "Najwa",
+          email: "najwa.finance@student.ac.id",
+          role: "Student account",
+        });
+      }
+
+      // 2. Initialize registered accounts DB in localStorage if not set
+      const storedAccounts = localStorage.getItem("sakuwise_registered_accounts");
+      if (!storedAccounts) {
+        localStorage.setItem("sakuwise_registered_accounts", JSON.stringify(DEFAULT_USERS_DB));
       }
     } catch (e) {
       console.error("Failed to load auth session", e);
-      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -85,14 +97,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const saveSession = (userData: User) => {
     setUser(userData);
     try {
-      localStorage.setItem("sakuwise_auth_user", JSON.stringify(userData));
+      const key = "sakuwise_auth_user";
+      const target = rememberRef.current ? localStorage : sessionStorage;
+      const other = rememberRef.current ? sessionStorage : localStorage;
+      target.setItem(key, JSON.stringify(userData));
+      other.removeItem(key);
     } catch (e) {
       console.error(e);
     }
   };
 
   // 1. Email & Password Login
-  const loginWithEmail = async (email: string, pass: string): Promise<AuthResponse> => {
+  const loginWithEmail = async (
+    email: string,
+    pass: string,
+    remember = true
+  ): Promise<AuthResponse> => {
+    rememberRef.current = remember;
     setIsLoading(true);
 
     // If Supabase is configured, use Supabase Auth
@@ -103,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password: pass,
         });
 
-        if (error) {
+        if (error && !DEMO_LOGIN_EMAILS.includes(email.trim().toLowerCase())) {
           setIsLoading(false);
           return { success: false, error: error.message };
         }
@@ -121,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { success: true };
         }
       } catch (err: any) {
-        console.warn("Supabase auth error:", err);
+        console.warn("Supabase auth failed, trying local store...", err);
       }
     }
 
@@ -220,7 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { success: true };
         }
       } catch (err: any) {
-        console.warn("Supabase signup fallback:", err);
+        console.warn("Supabase signup fallback...", err);
       }
     }
 
@@ -305,6 +326,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     try {
       localStorage.removeItem("sakuwise_auth_user");
+      sessionStorage.removeItem("sakuwise_auth_user");
+      rememberRef.current = true;
     } catch (e) {
       console.error(e);
     }

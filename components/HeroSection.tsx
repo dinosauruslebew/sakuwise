@@ -46,7 +46,7 @@ export default function HeroSection({ onOpenHowItWorks }: HeroSectionProps) {
             <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
               {/* Primary CTA */}
               <a
-                href="/login"
+                href="/signup"
                 className="inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-xl text-base font-semibold text-white bg-[#224431] hover:bg-[#163323] transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 group"
               >
                 <span>Coba Sakuwise Gratis</span>
@@ -67,13 +67,14 @@ export default function HeroSection({ onOpenHowItWorks }: HeroSectionProps) {
             </div>
 
             {/* Trust Badges */}
-            <div className="mt-8 sm:mt-10 flex items-center gap-6 text-xs sm:text-sm text-[#6C7E72] font-medium">
+            <div className="mt-8 sm:mt-10 flex items-center gap-6 text-xs sm:text-sm text-[#55695C] font-medium">
               <div className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-[#20743E] stroke-[3]" />
                 <span>Gratis untuk mulai</span>
               </div>
               <span className="text-gray-300">•</span>
               <div className="flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-[#20743E] stroke-[3]" />
                 <span>Tanpa kartu kredit</span>
               </div>
             </div>

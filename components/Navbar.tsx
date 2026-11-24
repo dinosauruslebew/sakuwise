@@ -16,7 +16,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 15);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -54,7 +54,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
           </div>
 
           {/* Desktop Navigation Links (Center) */}
-          <nav className="hidden md:flex items-center space-x-8 lg:space-x-10">
+          <nav aria-label="Navigasi utama" className="hidden md:flex items-center space-x-8 lg:space-x-10">
             {navLinks.map((link) => (
               <a
                 key={link.name}
@@ -76,7 +76,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
               Masuk
             </a>
             <a
-              href="/login"
+              href="/signup"
               className="inline-flex items-center justify-center text-sm font-medium text-white bg-[#224431] hover:bg-[#173324] px-5 py-2.5 rounded-full transition-all duration-200 shadow-sm hover:shadow active:scale-[0.98]"
             >
               Mulai Gratis
@@ -88,8 +88,10 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-[#1E3A2B] hover:bg-black/5 focus:outline-none"
-              aria-label="Toggle navigation menu"
+              className="p-2 rounded-xl text-[#1E3A2B] hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#224431]"
+              aria-label="Buka atau tutup menu navigasi"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               {mobileMenuOpen ? (
                 <X className="w-6 h-6" />
@@ -103,7 +105,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#FAF8F5] border-b border-[#E8ECE8] px-5 pt-3 pb-6 shadow-xl animate-in slide-in-from-top-3 duration-200">
+        <div id="mobile-menu" className="md:hidden bg-[#FAF8F5] border-b border-[#E8ECE8] px-5 pt-3 pb-6 shadow-xl animate-in slide-in-from-top-3 duration-200">
           <div className="flex flex-col space-y-4">
             {navLinks.map((link) => (
               <a
@@ -128,7 +130,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
                 Masuk
               </a>
               <a
-                href="/login"
+                href="/signup"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-white bg-[#224431] rounded-xl shadow"
               >

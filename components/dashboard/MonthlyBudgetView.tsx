@@ -1,98 +1,115 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Check, Calendar, AlertCircle } from "lucide-react";
-import { useData } from "@/context/DataContext";
+import { Plus, Check, Calendar } from "lucide-react";
 
 export default function MonthlyBudgetView() {
-  const {
-    allowance,
-    categories,
-    updateCategoryBudget,
-    addCategory,
-    remainingBalance,
-    dailySpendingLimit,
-    daysRemaining,
-  } = useData();
-
-  const [addCatModalOpen, setAddCatModalOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatBudget, setNewCatBudget] = useState("");
-  const [newCatDesc, setNewCatDesc] = useState("");
+  const [categories, setCategories] = useState([
+    {
+      id: "food",
+      name: "Food & drinks",
+      desc: "Meals, snacks & coffee",
+      budget: 900000,
+      spent: 510000,
+    },
+    {
+      id: "transport",
+      name: "Transport",
+      desc: "Commutes & trips",
+      budget: 300000,
+      spent: 180000,
+    },
+    {
+      id: "academic",
+      name: "Academic needs",
+      desc: "Books, printing & supplies",
+      budget: 350000,
+      spent: 125000,
+    },
+    {
+      id: "accommodation",
+      name: "Accommodation",
+      desc: "Rent, utilities & Wi-Fi",
+      budget: 1000000,
+      spent: 800000,
+    },
+    {
+      id: "personal",
+      name: "Personal",
+      desc: "Laundry, social & self-care",
+      budget: 300000,
+      spent: 100000,
+    },
+    {
+      id: "emergency",
+      name: "Emergency fund",
+      desc: "For the unexpected",
+      budget: 150000,
+      spent: 25000,
+    },
+  ]);
 
   const totalBudget = categories.reduce((acc, c) => acc + c.budget, 0);
   const totalSpent = categories.reduce((acc, c) => acc + c.spent, 0);
-  const leftToAllocate = Math.max(0, allowance - totalBudget);
-
-  const handleCreateCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanBudget = parseInt(newCatBudget.replace(/[^0-9]/g, ""), 10);
-    if (!newCatName.trim() || isNaN(cleanBudget)) return;
-
-    addCategory(newCatName.trim(), cleanBudget, newCatDesc.trim() || "Saku Anggaran");
-    setNewCatName("");
-    setNewCatBudget("");
-    setNewCatDesc("");
-    setAddCatModalOpen(false);
-  };
+  const totalRemaining = totalBudget - totalSpent;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
-      
       {/* 1. TOP CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
           <p className="text-xs font-semibold text-[#718576]">Monthly allowance</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-[#1E3A2B] tracking-tight mt-1.5">
-            Rp{allowance.toLocaleString("id-ID")}
+            Rp3.000.000
           </p>
           <p className="text-xs text-[#7D9183] mt-2">
-            Masuk pada tanggal 1 setiap bulan
+            Arrives on the 1st of each month
           </p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
           <p className="text-xs font-semibold text-[#718576]">Allocated budget</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-[#1E3A2B] tracking-tight mt-1.5">
-            Rp{totalBudget.toLocaleString("id-ID")}
+            Rp3.000.000
           </p>
           <p className="text-xs text-[#7D9183] mt-2">
-            {allowance > 0 ? `${Math.round((totalBudget / allowance) * 100)}% dari allowance teralokasi` : "Belum ada alokasi"}
+            100% of your allowance assigned
           </p>
         </div>
 
-        <div className="bg-[#224431] text-white rounded-2xl p-6 border border-[#2D583F] shadow-md">
-          <p className="text-xs font-medium text-[#B4CEBD]">Left to allocate</p>
+        <div
+          className={`text-white rounded-2xl p-6 border shadow-md ${
+            unallocated < 0 ? "bg-[#9A3B1B] border-[#B4491F]" : "bg-[#224431] border-[#2D583F]"
+          }`}
+        >
+          <p className="text-xs font-medium text-[#E4EEE7]">Left to allocate</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1.5">
-            Rp{leftToAllocate.toLocaleString("id-ID")}
+            Rp0
           </p>
           <p className="text-xs text-[#A1BFA9] mt-2">
-            {leftToAllocate === 0 ? "Setiap rupiah punya tempatnya" : "Tersedia untuk saku baru"}
+            Every rupiah has a place
           </p>
         </div>
       </div>
 
       {/* 2. MAIN BUDGET TABLE & RIGHT PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: Make room for what matters */}
+        {/* Left Column */}
         <div className="lg:col-span-8 bg-white rounded-2xl p-6 sm:p-7 border border-[#E7EDE7] shadow-2xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-[#F0F4F0] gap-2">
             <div>
-              <h3 className="text-base font-bold text-[#1E3A2B]">
-                Make room for what matters
-              </h3>
+              <h3 className="text-base font-bold text-[#1E3A2B]">Make room for what matters</h3>
               <p className="text-xs text-[#718576]">
-                Atur pembagian saku anggaran fleksibel untuk kebutuhan harian dan impian.
+                Set a flexible budget for campus life and everyday essentials.
               </p>
             </div>
             <button
               type="button"
-              onClick={() => setAddCatModalOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#244833] hover:text-[#112419] bg-[#E8EFEA] hover:bg-[#DCE6DF] px-3.5 py-2 rounded-xl transition-colors cursor-pointer self-start sm:self-auto"
+              onClick={() => alert("Form tambah kategori anggaran baru")}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#244833] hover:text-[#112419] bg-[#E8EFEA] hover:bg-[#DCE6DF] px-3 py-1.5 rounded-lg transition-colors cursor-pointer self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add category</span>
+              <span>{showAdd ? "Close" : "Add category"}</span>
             </button>
           </div>
 
@@ -108,73 +125,79 @@ export default function MonthlyBudgetView() {
               </thead>
               <tbody className="divide-y divide-[#F5F8F5]">
                 {categories.map((c) => {
-                  const spentPercent = c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
-                  const remaining = Math.max(0, c.budget - c.spent);
+                  const spentPercent = Math.min(100, Math.round((c.spent / c.budget) * 100));
+                  const remaining = c.budget - c.spent;
                   return (
                     <tr key={c.id} className="group hover:bg-[#FAF8F5] transition-colors">
                       <td className="py-3.5 pr-4">
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[#E08C38]" />
+                          <span
+                            className={`w-2 h-2 rounded-full ${c.over ? "bg-[#D2642F]" : "bg-[#E08C38]"}`}
+                          />
                           <div>
                             <p className="font-bold text-[#1E3A2B]">{c.name}</p>
-                            <p className="text-[10px] text-[#788B7D]">{c.desc}</p>
+                            <p className="text-[11px] text-[#788B7D]">{c.desc}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3.5 pr-4 font-semibold text-[#1E3A2B]">
-                        <input
-                          type="text"
-                          value={c.budget ? `Rp ${c.budget.toLocaleString("id-ID")}` : "Rp 0"}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value.replace(/[^0-9]/g, ""), 10);
-                            updateCategoryBudget(c.id, isNaN(val) ? 0 : val);
-                          }}
-                          className="w-32 bg-[#FAF8F5] px-2.5 py-1 rounded-md border border-[#E7EDE7] focus:bg-white focus:outline-none focus:border-[#244833]"
-                        />
+                        <span className="bg-[#FAF8F5] px-2.5 py-1 rounded-md border border-[#E7EDE7]">
+                          Rp {c.budget.toLocaleString("id-ID")}
+                        </span>
                       </td>
                       <td className="py-3.5 pr-4">
-                        <p className="font-semibold text-[#1E3A2B]">
-                          Rp{c.spent.toLocaleString("id-ID")}
-                        </p>
+                        <p className="font-semibold text-[#1E3A2B]">{formatRupiah(c.spent)}</p>
                         <div className="w-24 h-1.5 rounded-full bg-[#EAEFEA] overflow-hidden mt-1">
                           <div
-                            className="bg-[#E08C38] h-full rounded-full transition-all"
+                            className="bg-[#E08C38] h-full rounded-full"
                             style={{ width: `${spentPercent}%` }}
                           />
                         </div>
                       </td>
-                      <td className="py-3.5 text-right font-bold text-[#1E3A2B]">
-                        Rp{remaining.toLocaleString("id-ID")}
+                      <td
+                        className={`py-3.5 text-right font-bold ${
+                          c.over ? "text-[#B4491F]" : "text-[#1E3A2B]"
+                        }`}
+                      >
+                        {formatRupiah(c.remaining)}
+                      </td>
+                      <td className="py-3.5 pl-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(c.id, c.name)}
+                          className="p-1 rounded-md text-gray-300 hover:text-[#B4491F] hover:bg-[#FBE9E2] transition-colors cursor-pointer"
+                          aria-label={`Delete ${c.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))}
 
                 {/* Total Row */}
                 <tr className="border-t-2 border-[#E7EDE7] font-bold text-[#1E3A2B]">
                   <td className="py-4">Total</td>
                   <td className="py-4">Rp{totalBudget.toLocaleString("id-ID")}</td>
                   <td className="py-4">Rp{totalSpent.toLocaleString("id-ID")}</td>
-                  <td className="py-4 text-right">Rp{Math.max(0, totalBudget - totalSpent).toLocaleString("id-ID")}</td>
+                  <td className="py-4 text-right">Rp{totalRemaining.toLocaleString("id-ID")}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Right Column: Start with your allowance & All set card */}
+        {/* Right Column */}
         <div className="lg:col-span-4 space-y-5">
-          
           {/* Form: Start with your allowance */}
           <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
             <h3 className="text-sm font-bold text-[#1E3A2B]">
               Start with your allowance
             </h3>
             <p className="text-xs text-[#718576] mt-0.5 mb-4">
-              Pemasukan atau anggaran yang masuk setiap bulannya.
+              Tell us what comes in, and when.
             </p>
 
-            <div className="space-y-4">
+            <form onSubmit={handleSaveAllowance} className="space-y-4">
               <div>
                 <label className="text-[11px] font-semibold text-[#667A6C] block mb-1">
                   Monthly allowance
@@ -182,7 +205,7 @@ export default function MonthlyBudgetView() {
                 <input
                   type="text"
                   readOnly
-                  value={`Rp ${allowance.toLocaleString("id-ID")}`}
+                  value="Rp 3.000.000"
                   className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-[#D7E2D9] bg-[#FAF8F5] text-[#1E3A2B] focus:outline-none"
                 />
               </div>
@@ -192,20 +215,37 @@ export default function MonthlyBudgetView() {
                   Jadwal Masuk Berikutnya
                 </label>
                 <div className="flex items-center justify-between text-xs font-medium px-3 py-2.5 rounded-xl border border-[#D7E2D9] bg-white">
-                  <span>01 Desember 2026</span>
+                  <span>01 December 2026</span>
                   <Calendar className="w-3.5 h-3.5 text-gray-400" />
                 </div>
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-[#667A6C]">Berulang</span>
-                <span className="font-bold text-[#1E3A2B]">Setiap bulan</span>
+                <span className="text-[#667A6C]">Repeats</span>
+                <span className="font-bold text-[#1E3A2B]">Every month ▾</span>
               </div>
 
+              {allowNotice && (
+                <p
+                  className={`text-xs font-semibold rounded-lg px-3 py-2 ${
+                    allowNotice.ok ? "text-[#20743E] bg-[#E7F6EC]" : "text-[#B4491F] bg-[#FBE9E2]"
+                  }`}
+                >
+                  {allowNotice.text}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#224431] hover:bg-[#163323] cursor-pointer"
+              >
+                Update allowance
+              </button>
+
               <p className="text-[11px] text-[#7E8F82] pt-2 border-t border-[#F2F5F2]">
-                Periode aktif: 1–30 November 2026
+                Current period: 1–30 November 2026
               </p>
-            </div>
+            </form>
           </div>
 
           {/* Card: All set. Every rupiah has a role */}
@@ -216,56 +256,47 @@ export default function MonthlyBudgetView() {
             </h4>
 
             <div className="flex items-center justify-between mt-3 text-xs">
-              <span className="font-bold text-[#20743E]">
-                {allowance > 0 ? `${Math.round((totalBudget / allowance) * 100)}% dialokasikan` : "0% dialokasikan"}
-              </span>
-              <span className="text-[#78644A]">Rp{leftToAllocate.toLocaleString("id-ID")} tersisa</span>
+              <span className="font-bold text-[#20743E]">100% allocated</span>
+              <span className="text-[#78644A]">Rp0 unassigned</span>
             </div>
 
             <p className="text-xs text-[#7B613E] leading-relaxed mt-2.5">
-              Kebutuhan dasarmu terlindungi. Kamu dapat menyesuaikan saku anggaran kapan saja sesuai prioritas.
+              Your essentials are covered. You can adjust any category as your month changes.
             </p>
 
             <div className="mt-4 pt-3 border-t border-[#FCDDB5] flex items-center gap-1.5 text-xs text-[#20743E] font-semibold">
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Total anggaran tersinkronisasi otomatis</span>
+              <span>Total budget matches your allowance</span>
             </div>
           </div>
 
         </div>
-
       </div>
 
       {/* 3. BOTTOM BANNER */}
       <div className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E7EDE7] shadow-2xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="max-w-md">
-            <h3 className="text-base font-bold text-[#1E3A2B]">
-              A daily limit that moves with you
-            </h3>
+            <h3 className="text-base font-bold text-[#1E3A2B]">A daily limit that moves with you</h3>
             <p className="text-xs text-[#637668] mt-1 leading-relaxed">
-              Limit harianmu otomatis terhitung ulang setiap kali mencatat pengeluaran.
+              Your daily limit updates when you log an expense. Keep your entries up to date for a more accurate plan.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-6 sm:gap-10">
             <div>
-              <p className="text-[10px] uppercase font-bold text-[#7A8E80]">
-                Remaining balance
-              </p>
+              <p className="text-[11px] uppercase font-bold text-[#7A8E80]">Remaining balance</p>
               <p className="text-xl sm:text-2xl font-extrabold text-[#1E3A2B]">
-                Rp{remainingBalance.toLocaleString("id-ID")}
+                Rp1.260.000
               </p>
             </div>
 
-            <div className="text-gray-300 font-light text-xl hidden sm:block">÷</div>
+            <div className="text-gray-300 font-light text-xl hidden sm:block">&divide;</div>
 
             <div>
-              <p className="text-[10px] uppercase font-bold text-[#7A8E80]">
-                Days until allowance
-              </p>
+              <p className="text-[11px] uppercase font-bold text-[#7A8E80]">Days until allowance</p>
               <p className="text-xl sm:text-2xl font-extrabold text-[#1E3A2B]">
-                {daysRemaining} hari
+                14 days
               </p>
             </div>
 
@@ -276,86 +307,12 @@ export default function MonthlyBudgetView() {
                 Daily spending limit
               </p>
               <p className="text-xl sm:text-2xl font-extrabold text-[#20743E]">
-                Rp{dailySpendingLimit.toLocaleString("id-ID")}
+                Rp90.000
               </p>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Modal: Add Category */}
-      {addCatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-[#DCE4DD]">
-            <h3 className="text-sm font-bold text-[#1E3A2B]">Tambah Saku Anggaran</h3>
-            <p className="text-xs text-[#718576] mt-0.5 mb-4">
-              Buat saku baru untuk pos pengeluaran spesifik.
-            </p>
-
-            <form onSubmit={handleCreateCategory} className="space-y-3.5">
-              <div>
-                <label className="text-[11px] font-bold text-[#677C6D] block mb-1">
-                  Nama Saku
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Belanja Bulanan"
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D7E2D9] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-[#677C6D] block mb-1">
-                  Alokasi Anggaran (Rp)
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: 500.000"
-                  value={newCatBudget}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, "");
-                    setNewCatBudget(raw ? parseInt(raw, 10).toLocaleString("id-ID") : "");
-                  }}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D7E2D9] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-[#677C6D] block mb-1">
-                  Deskripsi Singkat (Opsional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Kebutuhan dapur dan mandi"
-                  value={newCatDesc}
-                  onChange={(e) => setNewCatDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D7E2D9] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431]"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setAddCatModalOpen(false)}
-                  className="w-1/2 py-2.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-2.5 text-xs font-bold text-white bg-[#224431] hover:bg-[#163323] rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  Simpan Saku
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   );

@@ -1,73 +1,113 @@
 "use client";
 
-import React, { useState } from "react";
-import { Sparkles, Send, Bot, User as UserIcon, Lightbulb, TrendingDown, Shield } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Sparkles, Send, Bot, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useData } from "@/context/DataContext";
 
 export default function AIAssistantView() {
   const { user } = useAuth();
-  const { allowance, totalSpent, dailySpendingLimit, remainingBalance, daysRemaining } = useData();
-  const userName = user?.name || user?.email?.split("@")[0] || "Teman Sakuwise";
+  const userName = user?.name || "Najwa";
 
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
-      id: "1",
+      id: "welcome",
       sender: "ai",
-      text: `Halo ${userName}! Saya asisten finansial Sakuwise kamu. Berdasarkan catatan bulan ini, kamu memiliki total pengeluaran Rp${totalSpent.toLocaleString("id-ID")} dari allowance Rp${allowance.toLocaleString("id-ID")}. Sisa limit harianmu adalah Rp${dailySpendingLimit.toLocaleString("id-ID")}/hari untuk ${daysRemaining} hari ke depan. Ada yang ingin kamu diskusikan?`,
+      text: `Halo ${userName}! Saya asisten finansial Sakuwise kamu. Berdasarkan catatan bulan November ini, kamu sudah menghabiskan Rp1.740.000 dari allowance Rp3.000.000. Sisa kuota harianmu adalah Rp90.000/hari untuk 14 hari ke depan. Ada yang ingin kamu diskusikan?`,
       time: "10:30",
     },
     {
       id: "2",
       sender: "user",
-      text: "Bagaimana cara menjaga pengeluaran harian agar tidak melebihi sisa allowance?",
+      text: "Bagaimana cara menghemat pengeluaran saku makan minggu ini agar tidak boncos?",
       time: "10:31",
     },
     {
       id: "3",
       sender: "ai",
-      text: `Rekomendasi bijak dari AI Sakuwise:\n\n1. 🍱 Prioritaskan Kebutuhan Pokok: Usahakan belanja makan harian tetap di bawah Rp${Math.max(25000, Math.round(dailySpendingLimit * 0.4)).toLocaleString("id-ID")} per hari.\n2. ☕ Hindari Impulse Buying: Sebelum checkout jajan online, tunda 24 jam untuk memastikan apakah itu kebutuhan atau sekadar keinginan.\n3. 🎯 Monitor Rutin: Setiap malam sebelum tidur, pastikan transaksi hari ini sudah tercatat agar limit harian besok terhitung akurat!`,
+      text: `Saran bijak untuk saku makanmu:\n\n1. 🍱 Meal Prep / Bawa Bekal: Batasi jajan di kantin kampus menjadi 1x sehari saja.\n2. ☕ Kopi Hemat: Ganti afternoon coffee harian di cafe dengan cold brew buatan sendiri atau air putih botol.\n3. 🎯 Target Harian: Jaga pengeluaran makan di angka maksimal Rp27.000 per hari, maka sisa Rp390.000 di saku makanmu akan cukup sampai tanggal 30 November!`,
       time: "10:31",
     },
   ]);
 
   const [inputMessage, setInputMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
+  // Load saved chat history for this account (deferred so setState is not called synchronously in the effect)
+  useEffect(() => {
+    if (!storageKey) return;
+    const timer = setTimeout(() => {
+      let saved: ChatMessage[] = [];
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const parsed: unknown = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(parsed)) saved = parsed.filter(isChatMessage);
+      } catch {
+        saved = []; // corrupted or unavailable storage: start with an empty history
+      }
+      setMessages((prev) => [...prev.filter((m) => m.id === "welcome"), ...saved]);
+      setLoadedKey(storageKey);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [storageKey]);
 
-    const userMsg = {
-      id: Date.now().toString(),
+  // Save history after every change (the welcome message and error messages are not saved)
+  useEffect(() => {
+    if (!storageKey || loadedKey !== storageKey) return;
+    try {
+      const toSave = messages
+        .filter((m) => m.id !== "welcome" && !m.isError)
+        .slice(-MAX_SAVED_MESSAGES);
+      localStorage.setItem(storageKey, JSON.stringify(toSave));
+    } catch {
+      // storage full or blocked: keep working without saving
+    }
+  }, [messages, storageKey, loadedKey]);
+
+  const clearHistory = () => {
+    if (!window.confirm("Hapus seluruh riwayat chat dengan asisten AI?")) return;
+    setMessages((prev) => prev.filter((m) => m.id === "welcome"));
+  };
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, loading]);
+
+  const sendMessage = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
       sender: "user",
-      text: inputMessage,
-      time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      text: trimmed,
+      time: nowTime(),
     };
-
-    setMessages((prev) => [...prev, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInputMessage("");
 
-    // Simulate smart AI reply tailored to user's real balance
+    // Simulate smart AI reply
     setTimeout(() => {
       const aiReply = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
-        text: `Analisis cerdas untuk pertanyaanmu: Dengan sisa saldo Rp${remainingBalance.toLocaleString("id-ID")}, rencanamu dapat terwujud jika kamu menjaga pengeluaran discretionary (hiburan & jajan) tetap terukur minggu ini. Konsistensi kecil setiap hari berdampak besar untuk ketenangan finansialmu!`,
+        text: `Analisis cerdas untuk pertanyaanmu: Rencanamu sangat realistis. Jika kamu menahan pengeluaran hiburan akhir pekan ini, kamu bisa menyisihkan tambahan Rp50.000 langsung ke target tabungan 'New laptop fund'!`,
         time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, aiReply]);
-    }, 700);
+    }, 800);
   };
 
   const quickQuestions = [
     "Bagaimana evaluasi pengeluaran mingguan saya?",
-    "Apakah tabungan saya berada di jalur yang tepat?",
-    "Tips hemat makan harian tanpa tersiksa",
+    "Apakah tabungan laptop saya sesuai target?",
+    "Simulasikan jika saya belanja Rp100.000 hari ini",
   ];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      
       {/* Top Banner */}
       <div className="bg-[#EBF1EC] rounded-2xl p-6 border border-[#DCE5DE] flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -75,14 +115,20 @@ export default function AIAssistantView() {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-[#1E3A2B]">
-              Sakuwise AI Smart Advisor
-            </h3>
+            <h3 className="text-base font-bold text-[#1E3A2B]">SakuWise AI Smart Advisor</h3>
             <p className="text-xs text-[#596D5F]">
-              Didukung model analisis pengeluaran personal yang terisolasi dan privat.
+              Didukung model analisis pengeluaran personal tanpa membagikan data pribadimu.
             </p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={clearHistory}
+          className="flex-shrink-0 flex items-center gap-1.5 text-[11px] font-medium text-[#596D5F] hover:text-[#1E3A2B] hover:bg-[#DCE5DE] px-3 py-1.5 rounded-full transition-colors cursor-pointer"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Hapus riwayat
+        </button>
       </div>
 
       {/* Chat Container */}
@@ -105,13 +151,15 @@ export default function AIAssistantView() {
                 <div
                   className={`max-w-lg rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
                     isAi
-                      ? "bg-[#FAF8F5] text-[#1E3A2B] border border-[#E7EDE7]"
+                      ? m.isError
+                        ? "bg-red-50 text-red-700 border border-red-200"
+                        : "bg-[#FAF8F5] text-[#1E3A2B] border border-[#E7EDE7]"
                       : "bg-[#244833] text-white"
                   }`}
                 >
                   <p className="whitespace-pre-line">{m.text}</p>
                   <span
-                    className={`text-[10px] block mt-1.5 ${
+                    className={`text-[11px] block mt-1.5 ${
                       isAi ? "text-[#7B8F80]" : "text-emerald-200/80"
                     }`}
                   >
@@ -127,6 +175,19 @@ export default function AIAssistantView() {
               </div>
             );
           })}
+
+          {loading && (
+            <div className="flex items-start gap-3 justify-start">
+              <div className="w-8 h-8 rounded-full bg-[#244833] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Bot className="w-4 h-4" />
+              </div>
+              <div className="rounded-2xl p-4 text-xs sm:text-sm bg-[#FAF8F5] text-[#596D5F] border border-[#E7EDE7] flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Sedang menganalisis keuanganmu...
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
         </div>
 
         {/* Quick Suggestions */}
@@ -135,8 +196,9 @@ export default function AIAssistantView() {
             <button
               key={i}
               type="button"
-              onClick={() => setInputMessage(q)}
-              className="flex-shrink-0 text-[11px] font-medium text-[#244833] bg-[#E8EFEA] hover:bg-[#DCE6DF] px-3 py-1.5 rounded-full transition-colors cursor-pointer"
+              disabled={loading}
+              onClick={() => void sendMessage(q)}
+              className="flex-shrink-0 text-[11px] font-medium text-[#244833] bg-[#E8EFEA] hover:bg-[#DCE6DF] px-3 py-1.5 rounded-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {q}
             </button>
@@ -150,17 +212,18 @@ export default function AIAssistantView() {
             placeholder="Tanyakan rekomendasi atau hitung pengeluaran..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            className="flex-1 bg-[#FAF8F5] border border-[#D7E2D9] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#1E3A2B] placeholder:text-gray-400 focus:outline-none focus:border-[#224431]"
+            disabled={loading}
+            className="flex-1 bg-[#FAF8F5] border border-[#D7E2D9] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#1E3A2B] placeholder:text-gray-400 focus:outline-none focus:border-[#224431] disabled:opacity-60"
           />
           <button
             type="submit"
-            className="p-3 rounded-xl bg-[#224431] text-white hover:bg-[#163323] transition-colors shadow-xs cursor-pointer flex-shrink-0"
+            disabled={loading || !inputMessage.trim()}
+            className="p-3 rounded-xl bg-[#224431] text-white hover:bg-[#163323] transition-colors shadow-xs cursor-pointer flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
           </button>
         </form>
       </div>
-
     </div>
   );
 }

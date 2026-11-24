@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import React, { type ReactNode } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -37,23 +38,22 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  return (
-    <html lang="id" className={`${plusJakartaSans.variable} scroll-smooth`}>
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icon.png" type="image/png" sizes="192x192" />
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="public/icon.png" />
-      </head>
-      <body className="min-h-screen bg-[#FAF8F5] text-[#1E3A2B] font-sans antialiased selection:bg-[#E08C38]/20 selection:text-[#1E3A2B]">
-        <AuthProvider>
-          <DataProvider>
-            {children}
-          </DataProvider>
-        </AuthProvider>
-      </body>
-    </html>
+  return React.createElement(
+    "html",
+    {
+      lang: "id",
+      className: `${plusJakartaSans.variable} scroll-smooth`,
+      "data-scroll-behavior": "smooth",
+    },
+    React.createElement(
+      "body",
+      {
+        className:
+          "min-h-screen bg-[#FAF8F5] text-[#1E3A2B] font-sans antialiased selection:bg-[#E08C38]/20 selection:text-[#1E3A2B]",
+      },
+      React.createElement(AuthProvider, null, children),
+    ),
   );
 }

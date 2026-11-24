@@ -1,26 +1,31 @@
 "use client";
 
-import React from "react";
-import { Menu, Calendar, Plus, Bell, Check } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Menu, Calendar, Plus, Bell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useFinance, formatRupiah, parseISODate, isDemoAccount } from "@/context/FinanceContext";
+import { loadPrefs, PREFS_EVENT, type Preferences } from "@/lib/preferences";
 
 interface HeaderProps {
   activeTab: string;
   onOpenAddExpense: () => void;
   onOpenMobileSidebar: () => void;
-  selectedMonth: string;
-  setSelectedMonth: (month: string) => void;
+}
+
+function dueText(daysUntil: number): string {
+  if (daysUntil < 0) return `Overdue by ${-daysUntil} ${daysUntil === -1 ? "day" : "days"}`;
+  if (daysUntil === 0) return "Due today";
+  if (daysUntil === 1) return "Due tomorrow";
+  return `Due in ${daysUntil} days`;
 }
 
 export default function Header({
   activeTab,
   onOpenAddExpense,
   onOpenMobileSidebar,
-  selectedMonth,
-  setSelectedMonth,
 }: HeaderProps) {
   const { user } = useAuth();
-  const userName = user?.name || user?.email?.split("@")[0] || "kamu";
+  const userName = user?.name || "Najwa";
 
   const getBreadcrumb = () => {
     switch (activeTab) {
@@ -34,6 +39,10 @@ export default function Header({
         return "MY WORKSPACE / BILLS & REMINDERS";
       case "savings":
         return "MY WORKSPACE / SAVINGS GOALS";
+      case "settings":
+        return "MY WORKSPACE / SETTINGS";
+      case "help":
+        return "MY WORKSPACE / HELP";
       default:
         return "MY WORKSPACE / OVERVIEW";
     }
@@ -66,6 +75,16 @@ export default function Header({
           title: "Small steps, big dreams.",
           subtitle: "Track your funds and turn ambitions into reality.",
         };
+      case "settings":
+        return {
+          title: "Make it yours.",
+          subtitle: "Manage your account and preferences.",
+        };
+      case "help":
+        return {
+          title: "We're here to help.",
+          subtitle: "Answers to common questions about SakuWise.",
+        };
       default:
         return {
           title: "A little planning. A lot more peace.",
@@ -89,14 +108,13 @@ export default function Header({
           <Menu className="w-5 h-5" />
         </button>
 
-        <span className="text-xs font-bold text-[#1E3A2B]">
-          Sakuwise Workspace
-        </span>
+        <span className="text-xs font-bold text-[#1E3A2B]">Sakuwise Workspace</span>
 
         <button
           type="button"
           onClick={onOpenAddExpense}
           className="p-2 rounded-xl bg-[#244833] text-white text-xs font-semibold flex items-center gap-1"
+          aria-label="Add expense"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -104,76 +122,108 @@ export default function Header({
 
       {/* Main Header Container */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        
         {/* Left: Breadcrumb & Title */}
         <div>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-[#738777]">
+          <p className="text-[11px] font-bold tracking-widest uppercase text-[#738777]">
             {getBreadcrumb()}
           </p>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E3A2B] tracking-tight mt-1">
             {title}
           </h1>
-          <p className="text-xs sm:text-sm text-[#5C7063] mt-0.5">
-            {subtitle}
-          </p>
+          <p className="text-xs sm:text-sm text-[#5C7063] mt-0.5">{subtitle}</p>
         </div>
 
-        {/* Right: Status Pills, Date, Month Picker, and Action Button */}
+        {/* Right: Status Pills, Date, Notifications, Month, and Action Button */}
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          
           {/* Sample Data Pill */}
           <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium text-[#496251] bg-[#E8EFEA] border border-[#D5E1D7]">
-            Sample data
+            {isDemoAccount(user?.email) ? "Sample data" : "Your data"}
           </span>
 
           {/* Current Date */}
           <span className="hidden xl:inline-block text-xs font-medium text-[#718576]">
-            Tuesday, 17 Nov 2026
+            {todayLabel}
           </span>
 
           {/* Notification Bell */}
-          <div className="relative">
+          <div className="relative" ref={bellRef}>
             <button
               type="button"
-              className="w-9 h-9 rounded-xl bg-white border border-[#DDE6DF] flex items-center justify-center text-[#55695B] hover:text-[#1E3A2B] hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
-              title="Notifikasi"
+              onClick={() => setBellOpen((v) => !v)}
+              className="relative w-9 h-9 rounded-xl bg-white border border-[#DDE6DF] flex items-center justify-center text-[#55695B] hover:text-[#1E3A2B] hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+              title="Notifications"
+              aria-label="Notifications"
+              aria-expanded={bellOpen}
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E08C38] ring-2 ring-white" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#E08C38] text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
+                  {notificationCount}
+                </span>
+              )}
             </button>
+
+            {bellOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-[#E1E9E2] shadow-xl p-4 z-40">
+                <p className="text-xs font-bold text-[#1E3A2B] mb-2">Reminders</p>
+                {notificationCount === 0 ? (
+                  <p className="text-xs text-[#718576]">No reminders right now.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {showDailyReminder && (
+                      <li className="p-2 rounded-xl bg-[#FAF8F5] border border-[#E9EFEA]">
+                        <p className="text-xs font-bold text-[#1E3A2B]">Log today&apos;s spending</p>
+                        <p className="text-[11px] text-[#718576]">No expenses recorded yet today.</p>
+                      </li>
+                    )}
+                    {budgetWarnings.map((c) => (
+                      <li key={c.id} className="p-2 rounded-xl bg-[#FAF8F5] border border-[#E9EFEA]">
+                        <p className="text-xs font-bold text-[#1E3A2B]">{c.name} budget</p>
+                        <p className={`text-[11px] ${c.over ? "text-[#B4491F] font-semibold" : "text-[#718576]"}`}>
+                          {c.over ? "Over budget" : `${c.percent}% used`} Â· {formatRupiah(c.spent)} of {formatRupiah(c.budget)}
+                        </p>
+                      </li>
+                    ))}
+                    {dueSoonBills.map((b) => (
+                      <li
+                        key={b.id}
+                        className="flex items-center justify-between gap-3 p-2 rounded-xl bg-[#FAF8F5] border border-[#E9EFEA]"
+                      >
+                        <div>
+                          <p className="text-xs font-bold text-[#1E3A2B]">{b.name}</p>
+                          <p
+                            className={`text-[11px] ${
+                              b.overdue ? "text-[#B4491F] font-semibold" : "text-[#718576]"
+                            }`}
+                          >
+                            {dueText(b.daysUntil)}
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-[#1E3A2B]">{formatRupiah(b.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Month Picker Dropdown */}
-          <div className="relative">
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#DDE6DF] shadow-2xs text-xs font-bold text-[#1E3A2B]">
-              <Calendar className="w-3.5 h-3.5 text-[#5B7664]" />
-              <span>{selectedMonth}</span>
-            </div>
+          {/* Current period month */}
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#DDE6DF] shadow-2xs text-xs font-bold text-[#1E3A2B]">
+            <Calendar className="w-3.5 h-3.5 text-[#5B7664]" />
+            <span>{monthLabel}</span>
           </div>
 
           {/* Primary Action Button */}
-          {activeTab === "budget" ? (
-            <button
-              type="button"
-              onClick={() => alert("Perubahan anggaran tersimpan!")}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#224431] hover:bg-[#163324] shadow-sm hover:shadow transition-all cursor-pointer"
-            >
-              <Check className="w-4 h-4" />
-              <span>Save budget</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenAddExpense}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#224431] hover:bg-[#163324] shadow-sm hover:shadow active:scale-[0.98] transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Add expense</span>
-            </button>
-          )}
-
+          <button
+            type="button"
+            onClick={onOpenAddExpense}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#224431] hover:bg-[#163324] shadow-sm hover:shadow active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Add expense</span>
+          </button>
         </div>
-
       </div>
     </header>
   );
