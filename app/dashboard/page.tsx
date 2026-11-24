@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Header from "@/components/dashboard/Header";
-import OverviewView, { Transaction } from "@/components/dashboard/OverviewView";
+import OverviewView from "@/components/dashboard/OverviewView";
 import MonthlyBudgetView from "@/components/dashboard/MonthlyBudgetView";
 import ExpensesView from "@/components/dashboard/ExpensesView";
 import AIAssistantView from "@/components/dashboard/AIAssistantView";
@@ -13,76 +14,34 @@ import SettingsView from "@/components/dashboard/SettingsView";
 import HelpView from "@/components/dashboard/HelpView";
 import AddExpenseModal from "@/components/dashboard/AddExpenseModal";
 import { useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/DataContext";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { transactions, totalSpent, addExpense } = useData();
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("November 2026");
 
-  // Initial transactions matching Image 1 & Image 3
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "tx-1",
-      name: "Lunch at campus",
-      time: "Today · 12:30",
-      category: "Food & drinks",
-      amount: 28000,
-    },
-    {
-      id: "tx-2",
-      name: "Afternoon coffee",
-      time: "Today · 09:15",
-      category: "Food & drinks",
-      amount: 17000,
-    },
-    {
-      id: "tx-3",
-      name: "Ride to campus",
-      time: "16 Nov · 07:45",
-      category: "Transport",
-      amount: 18000,
-    },
-    {
-      id: "tx-4",
-      name: "Dinner with friends",
-      time: "16 Nov · 18:30",
-      category: "Food & drinks",
-      amount: 35000,
-    },
-    {
-      id: "tx-5",
-      name: "Course textbook",
-      time: "15 Nov · 14:20",
-      category: "Academic needs",
-      amount: 75000,
-    },
-    {
-      id: "tx-6",
-      name: "Printing assignment",
-      time: "15 Nov · 10:00",
-      category: "Academic needs",
-      amount: 12000,
-    },
-    {
-      id: "tx-7",
-      name: "Laundry",
-      time: "14 Nov · 17:00",
-      category: "Personal",
-      amount: 30000,
-    },
-  ]);
+  // Optional: Redirect to login if user is completely unauthenticated and not loading
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // If no session exists, route to /login
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
 
-  const [baseSpent, setBaseSpent] = useState<number>(1740000);
-
-  const handleSaveExpense = (newExpense: Omit<Transaction, "id">) => {
-    const item: Transaction = {
-      ...newExpense,
-      id: `tx-${Date.now()}`,
-    };
-    setTransactions((prev) => [item, ...prev]);
-    setBaseSpent((prev) => prev + newExpense.amount);
+  const handleSaveExpense = (newExpense: {
+    name: string;
+    amount: number;
+    category: any;
+    time: string;
+    note?: string;
+  }) => {
+    addExpense(newExpense);
   };
 
   const renderActiveView = () => {
@@ -94,7 +53,7 @@ export default function DashboardPage() {
           <ExpensesView
             transactions={transactions}
             onAddExpense={handleSaveExpense}
-            totalSpent={baseSpent}
+            totalSpent={totalSpent}
           />
         );
       case "ai":
@@ -113,11 +72,19 @@ export default function DashboardPage() {
             onSwitchTab={setActiveTab}
             onOpenAddExpense={() => setAddExpenseModalOpen(true)}
             transactions={transactions}
-            totalSpent={baseSpent}
+            totalSpent={totalSpent}
           />
         );
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-[#224431] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex">

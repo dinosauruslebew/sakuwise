@@ -3,28 +3,30 @@
 import React, { useState } from "react";
 import { Sparkles, Send, Bot, User as UserIcon, Lightbulb, TrendingDown, Shield } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/DataContext";
 
 export default function AIAssistantView() {
   const { user } = useAuth();
-  const userName = user?.name || "Najwa";
+  const { allowance, totalSpent, dailySpendingLimit, remainingBalance, daysRemaining } = useData();
+  const userName = user?.name || user?.email?.split("@")[0] || "Teman Sakuwise";
 
   const [messages, setMessages] = useState([
     {
       id: "1",
       sender: "ai",
-      text: `Halo ${userName}! Saya asisten finansial Sakuwise kamu. Berdasarkan catatan bulan November ini, kamu sudah menghabiskan Rp1.740.000 dari allowance Rp3.000.000. Sisa kuota harianmu adalah Rp90.000/hari untuk 14 hari ke depan. Ada yang ingin kamu diskusikan?`,
+      text: `Halo ${userName}! Saya asisten finansial Sakuwise kamu. Berdasarkan catatan bulan ini, kamu memiliki total pengeluaran Rp${totalSpent.toLocaleString("id-ID")} dari allowance Rp${allowance.toLocaleString("id-ID")}. Sisa limit harianmu adalah Rp${dailySpendingLimit.toLocaleString("id-ID")}/hari untuk ${daysRemaining} hari ke depan. Ada yang ingin kamu diskusikan?`,
       time: "10:30",
     },
     {
       id: "2",
       sender: "user",
-      text: "Bagaimana cara menghemat pengeluaran saku makan minggu ini agar tidak boncos?",
+      text: "Bagaimana cara menjaga pengeluaran harian agar tidak melebihi sisa allowance?",
       time: "10:31",
     },
     {
       id: "3",
       sender: "ai",
-      text: `Saran bijak untuk saku makanmu:\n\n1. 🍱 Meal Prep / Bawa Bekal: Batasi jajan di kantin kampus menjadi 1x sehari saja.\n2. ☕ Kopi Hemat: Ganti afternoon coffee harian di cafe dengan cold brew buatan sendiri atau air putih botol.\n3. 🎯 Target Harian: Jaga pengeluaran makan di angka maksimal Rp27.000 per hari, maka sisa Rp390.000 di saku makanmu akan cukup sampai tanggal 30 November!`,
+      text: `Rekomendasi bijak dari AI Sakuwise:\n\n1. 🍱 Prioritaskan Kebutuhan Pokok: Usahakan belanja makan harian tetap di bawah Rp${Math.max(25000, Math.round(dailySpendingLimit * 0.4)).toLocaleString("id-ID")} per hari.\n2. ☕ Hindari Impulse Buying: Sebelum checkout jajan online, tunda 24 jam untuk memastikan apakah itu kebutuhan atau sekadar keinginan.\n3. 🎯 Monitor Rutin: Setiap malam sebelum tidur, pastikan transaksi hari ini sudah tercatat agar limit harian besok terhitung akurat!`,
       time: "10:31",
     },
   ]);
@@ -45,22 +47,22 @@ export default function AIAssistantView() {
     setMessages((prev) => [...prev, userMsg]);
     setInputMessage("");
 
-    // Simulate smart AI reply
+    // Simulate smart AI reply tailored to user's real balance
     setTimeout(() => {
       const aiReply = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
-        text: `Analisis cerdas untuk pertanyaanmu: Rencanamu sangat realistis. Jika kamu menahan pengeluaran hiburan akhir pekan ini, kamu bisa menyisihkan tambahan Rp50.000 langsung ke target tabungan 'New laptop fund'!`,
+        text: `Analisis cerdas untuk pertanyaanmu: Dengan sisa saldo Rp${remainingBalance.toLocaleString("id-ID")}, rencanamu dapat terwujud jika kamu menjaga pengeluaran discretionary (hiburan & jajan) tetap terukur minggu ini. Konsistensi kecil setiap hari berdampak besar untuk ketenangan finansialmu!`,
         time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, aiReply]);
-    }, 800);
+    }, 700);
   };
 
   const quickQuestions = [
     "Bagaimana evaluasi pengeluaran mingguan saya?",
-    "Apakah tabungan laptop saya sesuai target?",
-    "Simulasikan jika saya belanja Rp100.000 hari ini",
+    "Apakah tabungan saya berada di jalur yang tepat?",
+    "Tips hemat makan harian tanpa tersiksa",
   ];
 
   return (
@@ -77,7 +79,7 @@ export default function AIAssistantView() {
               Sakuwise AI Smart Advisor
             </h3>
             <p className="text-xs text-[#596D5F]">
-              Didukung model analisis pengeluaran personal tanpa membagikan data pribadimu.
+              Didukung model analisis pengeluaran personal yang terisolasi dan privat.
             </p>
           </div>
         </div>
@@ -119,7 +121,7 @@ export default function AIAssistantView() {
 
                 {!isAi && (
                   <div className="w-8 h-8 rounded-full bg-[#E08C38] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                    {userName.charAt(0)}
+                    {userName.charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>

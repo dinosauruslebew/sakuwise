@@ -20,7 +20,7 @@ export default function Header({
   setSelectedMonth,
 }: HeaderProps) {
   const { user } = useAuth();
-  const userName = user?.name || "Najwa";
+  const userName = user?.name || user?.email?.split("@")[0] || "kamu";
 
   const getBreadcrumb = () => {
     switch (activeTab) {

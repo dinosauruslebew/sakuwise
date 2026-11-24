@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Download, Search, Check } from "lucide-react";
+import { Download, Search, Check, Receipt } from "lucide-react";
 import { Transaction } from "./OverviewView";
+import { useData } from "@/context/DataContext";
 
 interface ExpensesViewProps {
   transactions: Transaction[];
@@ -15,9 +16,7 @@ export default function ExpensesView({
   onAddExpense,
   totalSpent,
 }: ExpensesViewProps) {
-  const allowance = 3000000;
-  const remaining = allowance - totalSpent;
-  const percentSpent = Math.min(100, Math.round((totalSpent / allowance) * 100));
+  const { allowance, remainingBalance, dailySpendingLimit } = useData();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -26,9 +25,11 @@ export default function ExpensesView({
   const [amountInput, setAmountInput] = useState("");
   const [descInput, setDescInput] = useState("");
   const [categoryInput, setCategoryInput] = useState<Transaction["category"]>("Food & drinks");
-  const [dateInput, setDateInput] = useState("17 November 2026");
+  const [dateInput, setDateInput] = useState("Hari ini · 12:00");
   const [noteInput, setNoteInput] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const percentSpent = allowance > 0 ? Math.min(100, Math.round((totalSpent / allowance) * 100)) : 0;
 
   const categoryBadges: Record<string, { bg: string; text: string }> = {
     "Food & drinks": { bg: "bg-[#FEF1E1]", text: "text-[#9A5B15]" },
@@ -48,7 +49,8 @@ export default function ExpensesView({
       name: descInput.trim(),
       amount: cleanAmount,
       category: categoryInput,
-      time: `17 Nov 2026 · ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`,
+      time: `Hari ini · ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`,
+      note: noteInput.trim() || undefined,
     });
 
     setSavedSuccess(true);
@@ -58,6 +60,29 @@ export default function ExpensesView({
       setDescInput("");
       setNoteInput("");
     }, 1200);
+  };
+
+  const handleExportCSV = () => {
+    if (transactions.length === 0) {
+      alert("Belum ada data transaksi untuk diekspor.");
+      return;
+    }
+    const headers = ["ID", "Nama Transaksi", "Kategori", "Nominal", "Waktu"];
+    const rows = transactions.map((t) => [
+      t.id,
+      `"${t.name.replace(/"/g, '""')}"`,
+      `"${t.category}"`,
+      t.amount,
+      `"${t.time}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `sakuwise_transaksi_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const filteredTransactions = transactions.filter((t) => {
@@ -72,32 +97,32 @@ export default function ExpensesView({
       {/* 1. TOP CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
-          <p className="text-xs font-medium text-[#718576]">Monthly allowance</p>
+          <p className="text-xs font-semibold text-[#718576]">Monthly allowance</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-[#1E3A2B] tracking-tight mt-1.5">
-            Rp3.000.000
+            Rp{allowance.toLocaleString("id-ID")}
           </p>
           <p className="text-xs text-[#7D9183] mt-2">
-            Next allowance · 1 Dec 2026
+            Target anggaran bulanan
           </p>
         </div>
 
         <div className="bg-[#FFF9F0] rounded-2xl p-6 border border-[#FBEAD4] shadow-2xs">
-          <p className="text-xs font-medium text-[#8F7249]">Spent this month</p>
+          <p className="text-xs font-semibold text-[#8F7249]">Spent this month</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-[#1E3A2B] tracking-tight mt-1.5">
             Rp{totalSpent.toLocaleString("id-ID")}
           </p>
           <p className="text-xs text-[#8F7249] mt-2 font-medium">
-            {percentSpent}% of your monthly allowance
+            {percentSpent}% dari jatah bulananmu
           </p>
         </div>
 
         <div className="bg-[#224431] text-white rounded-2xl p-6 border border-[#2D583F] shadow-md">
           <p className="text-xs font-medium text-[#B4CEBD]">Remaining balance</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1.5">
-            Rp{remaining.toLocaleString("id-ID")}
+            Rp{remainingBalance.toLocaleString("id-ID")}
           </p>
           <p className="text-xs text-[#A1BFA9] mt-2">
-            42% left for the next 14 days
+            {allowance > 0 ? `${Math.max(0, 100 - percentSpent)}% tersisa untuk 14 hari ke depan` : "Atur allowance untuk pantau sisa"}
           </p>
         </div>
       </div>
@@ -114,12 +139,12 @@ export default function ExpensesView({
                 Your spending, all in one place
               </h3>
               <p className="text-xs text-[#718576]">
-                Every entry helps you build a better picture of your money.
+                Setiap catatan pengeluaran membantumu memahami pola belanja secara lebih bijak.
               </p>
             </div>
             <button
               type="button"
-              onClick={() => alert("Mengunduh laporan transaksi Sakuwise format CSV...")}
+              onClick={handleExportCSV}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A2B] hover:text-[#0F2218] transition-colors cursor-pointer self-start sm:self-auto"
             >
               <span>Export CSV</span>
@@ -133,7 +158,7 @@ export default function ExpensesView({
               <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search transactions..."
+                placeholder="Cari transaksi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#D9E3DC] text-xs font-medium text-[#1E3A2B] placeholder:text-gray-400 focus:outline-none focus:border-[#224431]"
@@ -146,7 +171,7 @@ export default function ExpensesView({
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[#D9E3DC] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white cursor-pointer"
               >
-                <option value="all">All categories ▾</option>
+                <option value="all">Semua kategori</option>
                 <option value="Food & drinks">Food & drinks</option>
                 <option value="Transport">Transport</option>
                 <option value="Academic needs">Academic needs</option>
@@ -158,73 +183,72 @@ export default function ExpensesView({
 
             <div className="sm:col-span-3">
               <select className="w-full px-3 py-2 rounded-xl border border-[#D9E3DC] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white cursor-pointer">
-                <option>This month ▾</option>
-                <option>Last month</option>
-                <option>All time</option>
+                <option>Bulan ini</option>
+                <option>Semua periode</option>
               </select>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[#F0F4F0] text-[10px] font-bold uppercase tracking-wider text-[#7A8E80]">
-                  <th className="pb-3">Transaction</th>
-                  <th className="pb-3">Category</th>
-                  <th className="pb-3 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F5F8F5]">
-                {filteredTransactions.map((t) => {
-                  const badgeStyle = categoryBadges[t.category] || {
-                    bg: "bg-gray-100",
-                    text: "text-gray-700",
-                  };
-                  return (
-                    <tr key={t.id} className="group hover:bg-[#FAF8F5] transition-colors">
-                      <td className="py-3.5 pr-4">
-                        <p className="font-semibold text-[#1E3A2B]">{t.name}</p>
-                        <p className="text-[10px] text-[#7E9184]">{t.time}</p>
-                      </td>
-                      <td className="py-3.5 pr-4">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium ${badgeStyle.bg} ${badgeStyle.text}`}
-                        >
-                          {t.category}
-                        </span>
-                      </td>
-                      <td className="py-3.5 text-right font-bold text-[#1E3A2B]">
-                        -Rp{t.amount.toLocaleString("id-ID")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {/* Table OR Empty State */}
+          {filteredTransactions.length === 0 ? (
+            <div className="py-12 px-4 text-center rounded-2xl bg-[#FAF8F5] border border-dashed border-[#DCE4DD] flex flex-col items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#E8EFEA] text-[#244833] flex items-center justify-center mb-3">
+                <Receipt className="w-6 h-6 stroke-[1.8]" />
+              </div>
+              <h4 className="text-sm font-bold text-[#1E3A2B]">Belum ada transaksi ditemukan</h4>
+              <p className="text-xs text-[#718576] max-w-sm mt-1 leading-relaxed">
+                {searchTerm || selectedCategory !== "all"
+                  ? "Tidak ada transaksi yang cocok dengan filter pencarianmu."
+                  : "Tambahkan pengeluaran pertamamu lewat formulir di sisi kanan."}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#F0F4F0] text-[10px] font-bold uppercase tracking-wider text-[#7A8E80]">
+                    <th className="pb-3">Transaction</th>
+                    <th className="pb-3">Category</th>
+                    <th className="pb-3 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F5F8F5]">
+                  {filteredTransactions.map((t) => {
+                    const badgeStyle = categoryBadges[t.category] || {
+                      bg: "bg-gray-100",
+                      text: "text-gray-700",
+                    };
+                    return (
+                      <tr key={t.id} className="group hover:bg-[#FAF8F5] transition-colors">
+                        <td className="py-3.5 pr-4">
+                          <p className="font-semibold text-[#1E3A2B]">{t.name}</p>
+                          <p className="text-[10px] text-[#7E9184]">{t.time}</p>
+                        </td>
+                        <td className="py-3.5 pr-4">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium ${badgeStyle.bg} ${badgeStyle.text}`}
+                          >
+                            {t.category}
+                          </span>
+                        </td>
+                        <td className="py-3.5 text-right font-bold text-[#1E3A2B]">
+                          -Rp{t.amount.toLocaleString("id-ID")}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Pagination & Note */}
           <div className="mt-5 pt-4 border-t border-[#F0F4F0] flex flex-col sm:flex-row items-center justify-between text-xs text-[#718576] gap-3">
-            <span>Showing 1-7 of 42 transactions</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="px-3 py-1 rounded-lg border border-[#D5E1D7] text-xs font-medium hover:bg-black/5"
-              >
-                ← Previous
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1 rounded-lg border border-[#D5E1D7] text-xs font-medium bg-[#E8EFEA] text-[#1E3A2B]"
-              >
-                Next →
-              </button>
-            </div>
+            <span>Menampilkan {filteredTransactions.length} dari {transactions.length} transaksi</span>
           </div>
 
           <div className="mt-4 p-3 rounded-xl bg-[#FAF8F5] border border-[#E9EFEA] text-xs text-[#6B7E70]">
-            Missing something? Add cash purchases too — the little things count.
+            Penting: Catat juga pengeluaran uang tunai / receh harian agar catatan keuanganmu selalu akurat.
           </div>
         </div>
 
@@ -235,13 +259,13 @@ export default function ExpensesView({
           <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
             <h3 className="text-sm font-bold text-[#1E3A2B]">Add an expense</h3>
             <p className="text-xs text-[#718576] mt-0.5 mb-4">
-              A few seconds now. More clarity later.
+              Catat pengeluaran baru langsung ke alokasi sakumu.
             </p>
 
             {savedSuccess ? (
-              <div className="py-8 text-center bg-[#E7F6EC] rounded-xl border border-[#CDEED5]">
+              <div className="py-8 text-center bg-[#E7F6EC] rounded-xl border border-[#CDEED5] animate-in fade-in duration-200">
                 <Check className="w-6 h-6 text-[#20743E] mx-auto mb-1 stroke-[3]" />
-                <p className="text-xs font-bold text-[#20743E]">Pengeluaran Disimpan!</p>
+                <p className="text-xs font-bold text-[#20743E]">Pengeluaran Berhasil Disimpan!</p>
               </div>
             ) : (
               <form onSubmit={handlePanelSubmit} className="space-y-3.5">
@@ -274,10 +298,10 @@ export default function ExpensesView({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Lunch at campus"
+                    placeholder="Contoh: Makan siang di kampus"
                     value={descInput}
                     onChange={(e) => setDescInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D7E2D9] text-xs font-medium text-[#1E3A2B] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-[#D7E2D9] text-xs font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431]"
                   />
                 </div>
 
@@ -317,7 +341,7 @@ export default function ExpensesView({
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Add a little detail"
+                    placeholder="Catatan tambahan (opsional)"
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
                     className="w-full px-3 py-1.5 rounded-xl border border-[#D7E2D9] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white resize-none"
@@ -331,7 +355,7 @@ export default function ExpensesView({
                       setAmountInput("");
                       setDescInput("");
                     }}
-                    className="w-1/2 py-2 px-3 rounded-xl text-xs font-semibold text-[#576B5D] bg-[#FAF8F5] hover:bg-black/5"
+                    className="w-1/2 py-2 px-3 rounded-xl text-xs font-semibold text-[#576B5D] bg-[#FAF8F5] hover:bg-black/5 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -350,13 +374,13 @@ export default function ExpensesView({
             )}
           </div>
 
-          {/* Card: Rp45.000 left to spend today */}
+          {/* Card: Daily Limit Reminder */}
           <div className="bg-[#FEF7EC] rounded-2xl p-5 border border-[#FDE5C5]">
             <p className="text-sm font-bold text-[#1E3A2B]">
-              Rp45.000 left to spend today
+              Rp{dailySpendingLimit.toLocaleString("id-ID")} limit belanja harian
             </p>
             <p className="text-xs text-[#826949] mt-1">
-              You&apos;re halfway through your Rp90.000 daily limit.
+              Jaga pengeluaran harianmu dalam angka ini agar allowance bertahan sampai akhir bulan.
             </p>
           </div>
 
@@ -367,8 +391,8 @@ export default function ExpensesView({
       {/* 3. BOTTOM BANNER */}
       <div className="bg-[#EBF1EC] rounded-2xl p-5 border border-[#DCE5DE] flex items-center justify-between text-xs text-[#526658]">
         <p>
-          <strong className="text-[#1E3A2B] font-bold">Good records. Better recommendations.</strong>{" "}
-          Your budget and AI guidance are only as accurate as the expenses you record.
+          <strong className="text-[#1E3A2B] font-bold">Catatan rapi. Rekomendasi lebih presisi.</strong>{" "}
+          Data alokasi dan AI Sakuwise bekerja optimal saat kamu rutin mencatat setiap transaksi.
         </p>
       </div>
 

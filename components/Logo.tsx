@@ -1,25 +1,23 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 
 interface LogoProps {
   className?: string;
   isDark?: boolean;
-  size?: "sm" | "md" | "lg";
-  taglineClassName?: string;
-  showTagline?: boolean;
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 export default function Logo({
   className = "",
-  isDark = false,
   size = "md",
 }: LogoProps) {
+  // Enhanced, prominent logo dimensions for crisp readability
   const sizeClasses = {
-    sm: "h-8 sm:h-9",
-    md: "h-10 sm:h-11",
-    lg: "h-12 sm:h-14",
+    sm: "h-9 sm:h-10",
+    md: "h-11 sm:h-12",
+    lg: "h-13 sm:h-15",
+    xl: "h-16 sm:h-20",
   };
 
   return (
@@ -29,7 +27,6 @@ export default function Logo({
         alt="Sakuwise - Manage your money, wisely"
         className={`${sizeClasses[size]} w-auto object-contain transition-transform duration-200 hover:scale-[1.02]`}
         onError={(e) => {
-          // Fallback to SVG if PNG fails
           (e.currentTarget as HTMLImageElement).src = "/logo.svg";
         }}
       />

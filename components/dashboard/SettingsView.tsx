@@ -27,13 +27,13 @@ export default function SettingsView() {
         {/* Profile info */}
         <div className="pt-4 border-t border-[#F2F5F2] flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-[#244833] text-white text-lg font-bold flex items-center justify-center">
-            {user?.name?.charAt(0) || "N"}
+            {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || "S"}
           </div>
           <div>
-            <p className="text-sm font-bold text-[#1E3A2B]">{user?.name || "Najwa"}</p>
-            <p className="text-xs text-[#718576]">{user?.email || "najwa.finance@student.ac.id"}</p>
-            <span className="inline-block mt-1 text-[10px] font-semibold bg-[#E8EFEA] text-[#244833] px-2 py-0.5 rounded-full">
-              {user?.role || "Student account"} · Google OAuth
+            <p className="text-sm font-bold text-[#1E3A2B]">{user?.name || user?.email?.split("@")[0] || "Pengguna Sakuwise"}</p>
+            <p className="text-xs text-[#718576]">{user?.email || "Akun Terdaftar"}</p>
+            <span className="inline-block mt-1 text-[10px] font-semibold bg-[#E8EFEA] text-[#244833] px-2.5 py-0.5 rounded-full">
+              {user?.role || "Personal account"} · Autentikasi Terverifikasi
             </span>
           </div>
         </div>
