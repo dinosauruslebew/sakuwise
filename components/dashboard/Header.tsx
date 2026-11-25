@@ -25,7 +25,56 @@ export default function Header({
   onOpenMobileSidebar,
 }: HeaderProps) {
   const { user } = useAuth();
+  const { summary } = useFinance();
+  const { today, periodStart, dueSoonBills } = summary;
   const userName = user?.name || "Najwa";
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  // Close the notification dropdown on outside click or Escape
+  useEffect(() => {
+    if (!bellOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setBellOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [bellOpen]);
+
+  // Notification preferences from Settings; refreshed whenever they are saved
+  const [prefs, setPrefs] = useState<Preferences>(() => loadPrefs(user?.email));
+  useEffect(() => {
+    const refresh = () => setPrefs(loadPrefs(user?.email));
+    window.addEventListener(PREFS_EVENT, refresh);
+    return () => window.removeEventListener(PREFS_EVENT, refresh);
+  }, [user?.email]);
+
+  const budgetWarnings = prefs.budgetAlerts
+    ? summary.categoryStats.filter((c) => c.budget > 0 && c.percent >= 85)
+    : [];
+  const showDailyReminder = prefs.dailyReminder && summary.spentToday === 0;
+  const notificationCount =
+    dueSoonBills.length + budgetWarnings.length + (showDailyReminder ? 1 : 0);
+
+  const monthLabel = parseISODate(periodStart).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+  const todayLabel = parseISODate(today).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
   const getBreadcrumb = () => {
     switch (activeTab) {

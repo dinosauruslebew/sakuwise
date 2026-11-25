@@ -5,6 +5,9 @@ import { useAuth } from '@/context/AuthContext';
 
 // ---------- Types ----------
 
+export type TransactionType = 'expense' | 'income';
+export type BudgetGroup = 'needs' | 'wants' | 'savings';
+
 export interface Transaction {
   id: string;
   name: string;
@@ -12,6 +15,7 @@ export interface Transaction {
   amount: number;
   date: string; // YYYY-MM-DD (local date)
   note?: string;
+  type?: TransactionType;
   createdAt: number;
 }
 
@@ -20,6 +24,7 @@ export interface BudgetCategory {
   name: string;
   desc: string;
   budget: number;
+  group?: BudgetGroup;
 }
 
 export interface Bill {
@@ -62,12 +67,15 @@ export interface NewTransaction {
   amount: number;
   date?: string;
   note?: string;
+  type?: TransactionType;
+  addToIncome?: boolean;
 }
 
 export interface NewCategory {
   name: string;
   desc?: string;
   budget: number;
+  group?: BudgetGroup;
 }
 
 export interface NewBill {
@@ -86,6 +94,7 @@ export interface NewGoal {
 }
 
 export interface CategoryStat extends BudgetCategory {
+  group: BudgetGroup;
   spent: number;
   remaining: number;
   percent: number;
@@ -110,6 +119,8 @@ export interface FinanceSummary {
   nextAllowanceDate: string;
   daysLeft: number;
   totalSpent: number;
+  totalExtraIncome: number;
+  effectiveIncome: number;
   remaining: number;
   percentSpent: number;
   percentRemaining: number;
@@ -124,27 +135,63 @@ export interface FinanceSummary {
   periodTransactions: Transaction[];
   bills: BillStatus[];
   dueSoonBills: BillStatus[];
+  // Group breakdowns for 50/30/20
+  groupStats: {
+    needs: { budget: number; spent: number; percent: number; ratio: number };
+    wants: { budget: number; spent: number; percent: number; ratio: number };
+    savings: { budget: number; spent: number; percent: number; ratio: number };
+  };
 }
 
 // ---------- Date and format helpers ----------
 
 const STORAGE_KEY = 'sakuwise_finance_v1';
-// Accounts that start with the sample (demo) data. Empty on purpose: every account starts blank
-// and fills in its own data. Add an email here to bring back the sample data for that account.
 const DEMO_EMAILS: string[] = [];
-
-// Fixed date used only until the real date is read on the client. Calling new Date() while
-// prerendering is not allowed with Cache Components, and nothing is shown until the real data loads.
 const PLACEHOLDER_DATE = '2000-01-01';
 
 export function isDemoAccount(email?: string | null): boolean {
   return !!email && DEMO_EMAILS.includes(email.trim().toLowerCase());
 }
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const GOAL_COLORS = ['bg-[#244833]', 'bg-[#E08C38]', 'bg-[#3D644C]', 'bg-[#6B8F71]'];
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+export function defaultCategoryGroup(name: string): BudgetGroup {
+  const n = name.toLowerCase();
+  if (
+    n.includes('food') ||
+    n.includes('makan') ||
+    n.includes('grocer') ||
+    n.includes('transport') ||
+    n.includes('bill') ||
+    n.includes('tagihan') ||
+    n.includes('accommodation') ||
+    n.includes('rent') ||
+    n.includes('kos') ||
+    n.includes('academic') ||
+    n.includes('kuliah') ||
+    n.includes('utilit') ||
+    n.includes('wifi') ||
+    n.includes('electric') ||
+    n.includes('water')
+  ) {
+    return 'needs';
+  }
+  if (
+    n.includes('saving') ||
+    n.includes('tabungan') ||
+    n.includes('darurat') ||
+    n.includes('emergency') ||
+    n.includes('invest') ||
+    n.includes('future')
+  ) {
+    return 'savings';
+  }
+  return 'wants';
+}
 
 export function toISODate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -165,7 +212,6 @@ export function addDays(iso: string, n: number): string {
   return toISODate(d);
 }
 
-// Number of days from date a to date b (positive when b is later)
 export function diffDays(a: string, b: string): number {
   return Math.round((parseISODate(b).getTime() - parseISODate(a).getTime()) / 86400000);
 }
@@ -199,8 +245,6 @@ function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// The allowance repeats monthly on the same day. If the saved date has passed,
-// roll it forward so the current period always ends on a future date.
 function resolvePeriod(base: string, today: string): { next: string; start: string } {
   let k = 0;
   let next = base;
@@ -223,26 +267,28 @@ function createSeed(today: string): FinanceData {
     return d < periodStart ? periodStart : d;
   };
 
-  const rows: Array<[string, string, number, string]> = [
-    ['Lunch at campus', 'Food & drinks', 28000, dateAgo(0)],
-    ['Afternoon coffee', 'Food & drinks', 17000, dateAgo(0)],
-    ['Ride to campus', 'Transport', 18000, dateAgo(1)],
-    ['Dinner with friends', 'Food & drinks', 35000, dateAgo(1)],
-    ['Course textbook', 'Academic needs', 75000, dateAgo(2)],
-    ['Printing assignment', 'Academic needs', 12000, dateAgo(2)],
-    ['Laundry', 'Personal', 30000, dateAgo(3)],
-    ['Weekly groceries', 'Food & drinks', 150000, dateAgo(4)],
-    ['Online ride', 'Transport', 22000, dateAgo(5)],
-    ['Boarding house rent', 'Accommodation', 800000, periodStart],
+  const rows: Array<[string, string, number, string, TransactionType?]> = [
+    ['Lunch at campus', 'Food & drinks', 28000, dateAgo(0), 'expense'],
+    ['Afternoon coffee', 'Food & drinks', 17000, dateAgo(0), 'expense'],
+    ['Freelance Graphic Project', 'Side Job', 650000, dateAgo(1), 'income'],
+    ['Ride to campus', 'Transport', 18000, dateAgo(1), 'expense'],
+    ['Dinner with friends', 'Food & drinks', 35000, dateAgo(1), 'expense'],
+    ['Course textbook', 'Academic needs', 75000, dateAgo(2), 'expense'],
+    ['Printing assignment', 'Academic needs', 12000, dateAgo(2), 'expense'],
+    ['Laundry', 'Personal', 30000, dateAgo(3), 'expense'],
+    ['Weekly groceries', 'Food & drinks', 150000, dateAgo(4), 'expense'],
+    ['Online ride', 'Transport', 22000, dateAgo(5), 'expense'],
+    ['Boarding house rent', 'Accommodation', 800000, periodStart, 'expense'],
   ];
 
   const noon = 12 * 3600 * 1000;
-  const transactions: Transaction[] = rows.map(([name, category, amount, date], i) => ({
+  const transactions: Transaction[] = rows.map(([name, category, amount, date, type], i) => ({
     id: `tx-seed-${i + 1}`,
     name,
     category,
     amount,
     date,
+    type: type || 'expense',
     createdAt: parseISODate(date).getTime() + noon + (rows.length - i) * 60000,
   }));
 
@@ -250,12 +296,12 @@ function createSeed(today: string): FinanceData {
     income: 3000000,
     nextAllowanceDate,
     categories: [
-      { id: 'food', name: 'Food & drinks', desc: 'Meals, snacks & coffee', budget: 900000 },
-      { id: 'transport', name: 'Transport', desc: 'Commutes & trips', budget: 300000 },
-      { id: 'academic', name: 'Academic needs', desc: 'Books, printing & supplies', budget: 350000 },
-      { id: 'accommodation', name: 'Accommodation', desc: 'Rent, utilities & Wi-Fi', budget: 1000000 },
-      { id: 'personal', name: 'Personal', desc: 'Laundry, social & self-care', budget: 300000 },
-      { id: 'emergency', name: 'Emergency fund', desc: 'For the unexpected', budget: 150000 },
+      { id: 'food', name: 'Food & drinks', desc: 'Meals, snacks & coffee', budget: 900000, group: 'needs' },
+      { id: 'transport', name: 'Transport', desc: 'Commutes & trips', budget: 300000, group: 'needs' },
+      { id: 'academic', name: 'Academic needs', desc: 'Books, printing & supplies', budget: 350000, group: 'needs' },
+      { id: 'accommodation', name: 'Accommodation', desc: 'Rent, utilities & Wi-Fi', budget: 1000000, group: 'needs' },
+      { id: 'personal', name: 'Personal', desc: 'Laundry, social & self-care', budget: 300000, group: 'wants' },
+      { id: 'emergency', name: 'Emergency fund', desc: 'For the unexpected', budget: 150000, group: 'savings' },
     ],
     transactions,
     bills: [
@@ -271,7 +317,6 @@ function createSeed(today: string): FinanceData {
   };
 }
 
-// Empty data for new accounts: default categories with no budget yet, no transactions, bills or goals
 function createBlank(today: string): FinanceData {
   const seed = createSeed(today);
   return {
@@ -287,7 +332,6 @@ function createBlank(today: string): FinanceData {
 function loadData(today: string, storageKey: string, demo: boolean): FinanceData {
   const seed = demo ? createSeed(today) : createBlank(today);
   try {
-    // Demo accounts can still pick up data saved under the old shared key
     const raw = localStorage.getItem(storageKey) ?? (demo ? localStorage.getItem(STORAGE_KEY) : null);
     if (raw) {
       const p = JSON.parse(raw) as Partial<FinanceData>;
@@ -314,25 +358,29 @@ function computeSummary(data: FinanceData, today: string): FinanceSummary {
   const daysLeft = Math.max(1, diffDays(today, next));
 
   const periodTransactions = data.transactions.filter((t) => t.date >= periodStart && t.date < next);
-  const totalSpent = sum(periodTransactions.map((t) => t.amount));
-  const remaining = data.income - totalSpent;
-  const spentToday = sum(periodTransactions.filter((t) => t.date === today).map((t) => t.amount));
+  const expenseTransactions = periodTransactions.filter((t) => t.type !== 'income');
+  const incomeTransactions = periodTransactions.filter((t) => t.type === 'income');
 
-  // The daily limit stays stable during the day: it is based on the balance at the
-  // start of today, divided by the days left until the next allowance.
+  const totalExtraIncome = sum(incomeTransactions.map((t) => t.amount));
+  const effectiveIncome = data.income + totalExtraIncome;
+  const totalSpent = sum(expenseTransactions.map((t) => t.amount));
+  const remaining = effectiveIncome - totalSpent;
+  const spentToday = sum(expenseTransactions.filter((t) => t.date === today).map((t) => t.amount));
+
   const balanceAtDayStart = remaining + spentToday;
   const dailyLimit = Math.max(0, Math.floor(balanceAtDayStart / daysLeft));
   const leftToday = dailyLimit - spentToday;
 
-  const percentSpent = data.income > 0 ? Math.min(100, Math.max(0, Math.round((totalSpent / data.income) * 100))) : 0;
-  const percentRemaining = data.income > 0 ? 100 - percentSpent : 0;
+  const percentSpent = effectiveIncome > 0 ? Math.min(100, Math.max(0, Math.round((totalSpent / effectiveIncome) * 100))) : 0;
+  const percentRemaining = effectiveIncome > 0 ? 100 - percentSpent : 0;
 
   const totalBudget = sum(data.categories.map((c) => c.budget));
 
   const categoryStats: CategoryStat[] = data.categories.map((c) => {
-    const spent = sum(periodTransactions.filter((t) => t.category === c.name).map((t) => t.amount));
+    const group = c.group || defaultCategoryGroup(c.name);
+    const spent = sum(expenseTransactions.filter((t) => t.category === c.name).map((t) => t.amount));
     const percent = c.budget > 0 ? Math.round((spent / c.budget) * 100) : spent > 0 ? 100 : 0;
-    return { ...c, spent, remaining: c.budget - spent, percent, over: spent > c.budget };
+    return { ...c, group, spent, remaining: c.budget - spent, percent, over: spent > c.budget };
   });
 
   const last7Days: DayTotal[] = [];
@@ -341,7 +389,7 @@ function computeSummary(data: FinanceData, today: string): FinanceSummary {
     last7Days.push({
       date,
       day: date.slice(8),
-      total: sum(data.transactions.filter((t) => t.date === date).map((t) => t.amount)),
+      total: sum(expenseTransactions.filter((t) => t.date === date).map((t) => t.amount)),
       isToday: i === 0,
     });
   }
@@ -355,12 +403,22 @@ function computeSummary(data: FinanceData, today: string): FinanceSummary {
 
   const dueSoonBills = bills.filter((b) => !b.paid && b.daysUntil <= 3);
 
+  // Group Stats for 50/30/20 breakdown
+  const needsBudget = sum(categoryStats.filter((c) => c.group === 'needs').map((c) => c.budget));
+  const needsSpent = sum(categoryStats.filter((c) => c.group === 'needs').map((c) => c.spent));
+  const wantsBudget = sum(categoryStats.filter((c) => c.group === 'wants').map((c) => c.budget));
+  const wantsSpent = sum(categoryStats.filter((c) => c.group === 'wants').map((c) => c.spent));
+  const savingsBudget = sum(categoryStats.filter((c) => c.group === 'savings').map((c) => c.budget));
+  const savingsSpent = sum(categoryStats.filter((c) => c.group === 'savings').map((c) => c.spent));
+
   return {
     today,
     periodStart,
     nextAllowanceDate: next,
     daysLeft,
     totalSpent,
+    totalExtraIncome,
+    effectiveIncome,
     remaining,
     percentSpent,
     percentRemaining,
@@ -375,6 +433,26 @@ function computeSummary(data: FinanceData, today: string): FinanceSummary {
     periodTransactions,
     bills,
     dueSoonBills,
+    groupStats: {
+      needs: {
+        budget: needsBudget,
+        spent: needsSpent,
+        percent: needsBudget > 0 ? Math.round((needsSpent / needsBudget) * 100) : 0,
+        ratio: data.income > 0 ? Math.round((needsBudget / data.income) * 100) : 50,
+      },
+      wants: {
+        budget: wantsBudget,
+        spent: wantsSpent,
+        percent: wantsBudget > 0 ? Math.round((wantsSpent / wantsBudget) * 100) : 0,
+        ratio: data.income > 0 ? Math.round((wantsBudget / data.income) * 100) : 30,
+      },
+      savings: {
+        budget: savingsBudget,
+        spent: savingsSpent,
+        percent: savingsBudget > 0 ? Math.round((savingsSpent / savingsBudget) * 100) : 0,
+        ratio: data.income > 0 ? Math.round((savingsBudget / data.income) * 100) : 20,
+      },
+    },
   };
 }
 
@@ -385,10 +463,18 @@ interface FinanceContextType extends FinanceData {
   summary: FinanceSummary;
   setIncome: (amount: number) => ActionResult;
   setNextAllowanceDate: (iso: string) => ActionResult;
+  applyAutoAllocation: (
+    incomeAmount: number,
+    preset?: '50/30/20' | '70/20/10' | '60/20/20' | 'custom',
+    customPercentages?: { needs: number; wants: number; savings: number }
+  ) => ActionResult;
   addTransaction: (input: NewTransaction) => ActionResult;
   deleteTransaction: (id: string) => void;
   addCategory: (input: NewCategory) => ActionResult;
-  updateCategory: (id: string, patch: Partial<Pick<BudgetCategory, 'desc' | 'budget'>>) => ActionResult;
+  updateCategory: (
+    id: string,
+    patch: Partial<Pick<BudgetCategory, 'desc' | 'budget' | 'group'>>
+  ) => ActionResult;
   deleteCategory: (id: string) => void;
   addBill: (input: NewBill) => ActionResult;
   setBillPaid: (id: string, paid: boolean) => void;
@@ -407,11 +493,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const email = user?.email?.trim().toLowerCase() ?? null;
   const storageKey = email ? `${STORAGE_KEY}:${email}` : null;
-  // The key whose data is currently loaded; data is only ready (and saved) for the signed-in account
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const ready = storageKey !== null && loadedKey === storageKey;
 
-  // Load saved data from localStorage (deferred so setState is not called synchronously in the effect)
   useEffect(() => {
     if (!email || !storageKey) return;
     const timer = setTimeout(() => {
@@ -423,7 +507,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [email, storageKey]);
 
-  // Persist every change after the first load
   useEffect(() => {
     if (!ready || !storageKey) return;
     try {
@@ -433,7 +516,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [data, ready, storageKey]);
 
-  // Keep today accurate if the tab stays open past midnight
   useEffect(() => {
     const id = setInterval(() => {
       const now = todayISO();
@@ -453,7 +535,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const setIncome = (amount: number): ActionResult => {
     if (!Number.isFinite(amount) || amount <= 0) {
-      return { ok: false, error: 'Allowance must be greater than zero.' };
+      return { ok: false, error: 'Monthly income must be greater than zero.' };
     }
     setData((prev) => ({ ...prev, income: Math.round(amount) }));
     return { ok: true };
@@ -467,12 +549,101 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   };
 
+  const applyAutoAllocation = (
+    incomeAmount: number,
+    preset: '50/30/20' | '70/20/10' | '60/20/20' | 'custom' = '50/30/20',
+    customPercentages?: { needs: number; wants: number; savings: number }
+  ): ActionResult => {
+    if (!Number.isFinite(incomeAmount) || incomeAmount <= 0) {
+      return { ok: false, error: 'Monthly income must be greater than zero.' };
+    }
+
+    let needsPct = 50;
+    let wantsPct = 30;
+    let savingsPct = 20;
+
+    if (preset === '70/20/10') {
+      needsPct = 70;
+      wantsPct = 20;
+      savingsPct = 10;
+    } else if (preset === '60/20/20') {
+      needsPct = 60;
+      wantsPct = 20;
+      savingsPct = 20;
+    } else if (preset === 'custom' && customPercentages) {
+      needsPct = customPercentages.needs;
+      wantsPct = customPercentages.wants;
+      savingsPct = customPercentages.savings;
+    }
+
+    const totalPct = needsPct + wantsPct + savingsPct;
+    if (totalPct !== 100) {
+      return { ok: false, error: 'Allocation percentages must total exactly 100%.' };
+    }
+
+    const cleanIncome = Math.round(incomeAmount);
+    const needsTotal = Math.round((cleanIncome * needsPct) / 100);
+    const wantsTotal = Math.round((cleanIncome * wantsPct) / 100);
+    const savingsTotal = cleanIncome - needsTotal - wantsTotal; // exact 100% match
+
+    setData((prev) => {
+      let currentCategories = [...prev.categories];
+
+      // Ensure default categories exist if empty
+      if (currentCategories.length === 0) {
+        currentCategories = [
+          { id: uid('cat'), name: 'Food & drinks', desc: 'Meals, snacks & coffee', budget: 0, group: 'needs' },
+          { id: uid('cat'), name: 'Accommodation', desc: 'Rent, utilities & bills', budget: 0, group: 'needs' },
+          { id: uid('cat'), name: 'Personal & Lifestyle', desc: 'Hobbies & entertainment', budget: 0, group: 'wants' },
+          { id: uid('cat'), name: 'Emergency fund', desc: 'Protected future buffer', budget: 0, group: 'savings' },
+        ];
+      }
+
+      const needsCats = currentCategories.filter((c) => (c.group || defaultCategoryGroup(c.name)) === 'needs');
+      const wantsCats = currentCategories.filter((c) => (c.group || defaultCategoryGroup(c.name)) === 'wants');
+      const savingsCats = currentCategories.filter((c) => (c.group || defaultCategoryGroup(c.name)) === 'savings');
+
+      const distribute = (cats: BudgetCategory[], totalAmount: number): Map<string, number> => {
+        const m = new Map<string, number>();
+        if (cats.length === 0) return m;
+        const perCat = Math.floor(totalAmount / cats.length);
+        const rem = totalAmount - perCat * cats.length;
+        cats.forEach((c, idx) => {
+          m.set(c.id, perCat + (idx === cats.length - 1 ? rem : 0));
+        });
+        return m;
+      };
+
+      const needsMap = distribute(needsCats, needsTotal);
+      const wantsMap = distribute(wantsCats, wantsTotal);
+      const savingsMap = distribute(savingsCats, savingsTotal);
+
+      const updatedCategories = currentCategories.map((c) => {
+        const grp = c.group || defaultCategoryGroup(c.name);
+        let newBud = c.budget;
+        if (grp === 'needs' && needsMap.has(c.id)) newBud = needsMap.get(c.id)!;
+        if (grp === 'wants' && wantsMap.has(c.id)) newBud = wantsMap.get(c.id)!;
+        if (grp === 'savings' && savingsMap.has(c.id)) newBud = savingsMap.get(c.id)!;
+        return { ...c, group: grp, budget: newBud };
+      });
+
+      return {
+        ...prev,
+        income: cleanIncome,
+        categories: updatedCategories,
+      };
+    });
+
+    return { ok: true };
+  };
+
   const addTransaction = (input: NewTransaction): ActionResult => {
     const name = input.name.trim();
     if (!name) return { ok: false, error: 'Description is required.' };
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
       return { ok: false, error: 'Amount must be greater than zero.' };
     }
+    const txType = input.type || 'expense';
     const tx: Transaction = {
       id: uid('tx'),
       name,
@@ -480,9 +651,21 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       amount: Math.round(input.amount),
       date: input.date || today,
       note: input.note?.trim() || undefined,
+      type: txType,
       createdAt: Date.now(),
     };
-    setData((prev) => ({ ...prev, transactions: [tx, ...prev.transactions] }));
+
+    setData((prev) => {
+      let newIncome = prev.income;
+      if (txType === 'income' && input.addToIncome) {
+        newIncome += Math.round(input.amount);
+      }
+      return {
+        ...prev,
+        income: newIncome,
+        transactions: [tx, ...prev.transactions],
+      };
+    });
     return { ok: true };
   };
 
@@ -504,6 +687,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       name,
       desc: input.desc?.trim() || '',
       budget: Math.round(input.budget),
+      group: input.group || defaultCategoryGroup(name),
     };
     setData((prev) => ({ ...prev, categories: [...prev.categories, cat] }));
     return { ok: true };
@@ -511,7 +695,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const updateCategory = (
     id: string,
-    patch: Partial<Pick<BudgetCategory, 'desc' | 'budget'>>
+    patch: Partial<Pick<BudgetCategory, 'desc' | 'budget' | 'group'>>
   ): ActionResult => {
     if (patch.budget !== undefined && (!Number.isFinite(patch.budget) || patch.budget < 0)) {
       return { ok: false, error: 'Budget cannot be negative.' };
@@ -524,6 +708,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
               ...c,
               ...(patch.desc !== undefined ? { desc: patch.desc } : {}),
               ...(patch.budget !== undefined ? { budget: Math.round(patch.budget) } : {}),
+              ...(patch.group !== undefined ? { group: patch.group } : {}),
             }
           : c
       ),
@@ -615,7 +800,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setData(isDemoAccount(email) ? createSeed(today) : createBlank(today));
   };
 
-  // Render nothing until saved data is loaded, so server and client output never differ
   if (!ready) {
     return <div className='min-h-screen bg-[#FAF8F5]' />;
   }
@@ -629,6 +813,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         summary,
         setIncome,
         setNextAllowanceDate,
+        applyAutoAllocation,
         addTransaction,
         deleteTransaction,
         addCategory,

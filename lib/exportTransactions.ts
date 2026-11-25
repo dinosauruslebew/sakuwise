@@ -36,8 +36,8 @@ export async function exportTransactionsXlsx(opts: ExportOptions): Promise<void>
   wb.creator = "Sakuwise";
   wb.created = new Date();
 
-  // ---------- Sheet 1: Transaksi ----------
-  const ws = wb.addWorksheet("Transaksi", {
+  // ---------- Sheet 1: Transactions ----------
+  const ws = wb.addWorksheet("Transactions", {
     views: [{ state: "frozen", ySplit: 4 }],
   });
   ws.columns = [
@@ -50,7 +50,7 @@ export async function exportTransactionsXlsx(opts: ExportOptions): Promise<void>
 
   ws.mergeCells("A1:E1");
   const title = ws.getCell("A1");
-  title.value = "Sakuwise Â· Laporan Pengeluaran";
+  title.value = "Sakuwise · Expense Report";
   title.font = { name: "Calibri", size: 16, bold: true, color: { argb: GREEN } };
   title.alignment = { vertical: "middle" };
   ws.getRow(1).height = 28;
@@ -58,11 +58,11 @@ export async function exportTransactionsXlsx(opts: ExportOptions): Promise<void>
   ws.mergeCells("A2:E2");
   const subtitle = ws.getCell("A2");
   subtitle.value =
-    `Periode: ${periodLabel}` + (filterNote ? ` Â· ${filterNote}` : "") + ` Â· Diekspor ${fileDate}`;
+    `Period: ${periodLabel}` + (filterNote ? ` · ${filterNote}` : "") + ` · Exported on ${fileDate}`;
   subtitle.font = { name: "Calibri", size: 10, color: { argb: MUTED } };
 
   const headerRow = ws.getRow(4);
-  headerRow.values = ["Tanggal", "Deskripsi", "Kategori", "Jumlah", "Catatan"];
+  headerRow.values = ["Date", "Description", "Category", "Amount", "Note"];
   headerRow.height = 22;
   headerRow.eachCell((cell, col) => {
     cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
@@ -110,7 +110,7 @@ export async function exportTransactionsXlsx(opts: ExportOptions): Promise<void>
   ws.autoFilter = { from: "A4", to: `E${last}` };
   ws.pageSetup = { orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
 
-  // ---------- Sheet 2: Per Kategori ----------
+  // ---------- Sheet 2: By Category ----------
   const byCategory = new Map<string, { count: number; sum: number }>();
   for (const t of transactions) {
     const cur = byCategory.get(t.category) ?? { count: 0, sum: 0 };
@@ -118,17 +118,17 @@ export async function exportTransactionsXlsx(opts: ExportOptions): Promise<void>
   }
   const cats = [...byCategory.entries()].sort((a, b) => b[1].sum - a[1].sum);
 
-  const ws2 = wb.addWorksheet("Per Kategori", { views: [{ state: "frozen", ySplit: 3 }] });
+  const ws2 = wb.addWorksheet("By Category", { views: [{ state: "frozen", ySplit: 3 }] });
   ws2.columns = [{ width: 24 }, { width: 18 }, { width: 20 }, { width: 12 }];
 
   ws2.mergeCells("A1:D1");
   const t2 = ws2.getCell("A1");
-  t2.value = "Ringkasan per Kategori";
+  t2.value = "Summary by Category";
   t2.font = { name: "Calibri", size: 16, bold: true, color: { argb: GREEN } };
   ws2.getRow(1).height = 28;
 
   const h2 = ws2.getRow(3);
-  h2.values = ["Kategori", "Jumlah transaksi", "Total", "Porsi"];
+  h2.values = ["Category", "Transaction count", "Total", "Share"];
   h2.height = 22;
   h2.eachCell((cell, col) => {
     cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
@@ -139,8 +139,8 @@ export async function exportTransactionsXlsx(opts: ExportOptions): Promise<void>
 
   const catFirst = 4;
   const catLast = catFirst + cats.length - 1;
-  const rangeCat = `Transaksi!$C$${first}:$C$${last}`;
-  const rangeAmt = `Transaksi!$D$${first}:$D$${last}`;
+  const rangeCat = `Transactions!$C$${first}:$C$${last}`;
+  const rangeAmt = `Transactions!$D$${first}:$D$${last}`;
   const totalRef = `$C$${catLast + 1}`;
 
   cats.forEach(([name, v], i) => {
@@ -186,7 +186,7 @@ export async function exportTransactionsXlsx(opts: ExportOptions): Promise<void>
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `sakuwise-transaksi-${fileDate}.xlsx`;
+  a.download = `sakuwise-expenses-${fileDate}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 interface LogoProps {
   className?: string;
@@ -14,10 +15,10 @@ export default function Logo({
 }: LogoProps) {
   // Enhanced, prominent logo dimensions for crisp readability
   const sizeClasses = {
-    sm: "h-9 sm:h-10",
-    md: "h-11 sm:h-12",
-    lg: "h-13 sm:h-15",
-    xl: "h-16 sm:h-20",
+    sm: "h-10 sm:h-11",
+    md: "h-12 sm:h-14",
+    lg: "h-14 sm:h-16",
+    xl: "h-20 sm:h-24",
   };
 
   return (
@@ -27,6 +28,7 @@ export default function Logo({
         alt="Sakuwise - Manage your money, wisely"
         width={826}
         height={302}
+        priority
         className={`${sizeClasses[size]} w-auto object-contain transition-transform duration-200 hover:scale-[1.02]`}
       />
     </div>

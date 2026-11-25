@@ -21,10 +21,10 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
   }, []);
 
   const navLinks = [
-    { name: "Fitur", href: "#fitur" },
+    { name: "Features", href: "#features" },
     {
-      name: "Cara Kerja",
-      href: "#cara-kerja",
+      name: "How It Works",
+      href: "#how-it-works",
       onClick: onOpenHowItWorks
         ? (e: React.MouseEvent) => {
             e.preventDefault();
@@ -32,7 +32,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
           }
         : undefined,
     },
-    { name: "Keamanan", href: "#keamanan" },
+    { name: "Security", href: "#security" },
   ];
 
   return (
@@ -54,7 +54,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
           </div>
 
           {/* Desktop Navigation Links (Center) */}
-          <nav aria-label="Navigasi utama" className="hidden md:flex items-center space-x-8 lg:space-x-10">
+          <nav aria-label="Main navigation" className="hidden md:flex items-center space-x-8 lg:space-x-10">
             {navLinks.map((link) => (
               <a
                 key={link.name}
@@ -67,19 +67,19 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
             ))}
           </nav>
 
-          {/* Desktop Right Actions: Masuk & Mulai Gratis */}
+          {/* Desktop Right Actions: Sign In & Get Started Free */}
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
             <a
               href="/login"
               className="text-sm font-semibold text-[#1E3A2B] hover:text-[#0F2218] transition-colors px-3 py-2"
             >
-              Masuk
+              Sign In
             </a>
             <a
               href="/signup"
               className="inline-flex items-center justify-center text-sm font-medium text-white bg-[#224431] hover:bg-[#173324] px-5 py-2.5 rounded-full transition-all duration-200 shadow-sm hover:shadow active:scale-[0.98]"
             >
-              Mulai Gratis
+              Get Started Free
             </a>
           </div>
 
@@ -89,7 +89,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-xl text-[#1E3A2B] hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#224431]"
-              aria-label="Buka atau tutup menu navigasi"
+              aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
             >
@@ -127,14 +127,14 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2.5 text-sm font-semibold text-[#1E3A2B] rounded-xl border border-[#D8E2D9] hover:bg-black/5"
               >
-                Masuk
+                Sign In
               </a>
               <a
                 href="/signup"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-white bg-[#224431] rounded-xl shadow"
               >
-                Mulai Gratis
+                Get Started Free
                 <ArrowRight className="w-4 h-4" />
               </a>
             </div>

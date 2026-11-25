@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import GoogleIcon from "@/components/GoogleIcon";
 import HeroDashboardMockup from "@/components/HeroDashboardMockup";
@@ -18,8 +19,11 @@ import {
 
 export default function LoginPage() {
   const { loginWithEmail, signUpWithEmail, loginWithGoogle, isLoading } = useAuth();
+  const pathname = usePathname();
 
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup">(() =>
+    pathname === "/signup" ? "signup" : "login"
+  );
   const [identifier, setIdentifier] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +36,7 @@ export default function LoginPage() {
     setErrorMessage(null);
 
     if (!identifier.trim() || !password) {
-      setErrorMessage("Silakan isi email dan kata sandi Anda.");
+      setErrorMessage("Please enter your email and password.");
       return;
     }
 
@@ -62,7 +66,7 @@ export default function LoginPage() {
     try {
       await loginWithGoogle();
     } catch (err: any) {
-      setErrorMessage(err?.message || "Gagal masuk dengan Google. Silakan coba lagi.");
+      setErrorMessage(err?.message || "Failed to sign in with Google. Please try again.");
     }
   };
 
@@ -83,7 +87,7 @@ export default function LoginPage() {
             className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-[#5B6D60] hover:text-[#1E3A2B]"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Beranda</span>
+            <span>Home</span>
           </Link>
         </div>
 
@@ -93,15 +97,15 @@ export default function LoginPage() {
           {/* Header Title */}
           <div className="mb-7">
             <span className="text-[11px] font-bold text-[#7A8E80] tracking-widest uppercase block mb-1.5">
-              {mode === "login" ? "SELAMAT DATANG KEMBALI" : "MULAI PERJALANANMU"}
+              {mode === "login" ? "WELCOME BACK" : "START YOUR JOURNEY"}
             </span>
             <h1 className="text-3xl sm:text-[34px] font-extrabold text-[#1E3A2B] tracking-tight leading-tight">
-              {mode === "login" ? "Masuk ke Sakuwise" : "Daftar Akun Sakuwise"}
+              {mode === "login" ? "Sign in to Sakuwise" : "Create your Sakuwise account"}
             </h1>
             <p className="mt-2 text-sm text-[#5B6D60] leading-relaxed">
               {mode === "login"
-                ? "Lanjutkan rencana baik untuk keuanganmu."
-                : "Kelola keuangan pribadi lebih terarah tanpa biaya."}
+                ? "Continue your smart financial journey."
+                : "Take charge of your personal finances with clarity."}
             </p>
           </div>
 
@@ -121,7 +125,7 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold text-[#1E3A2B] bg-white border border-[#D5E1D7] hover:bg-[#FAF8F5] hover:border-[#B7C7B9] shadow-2xs hover:shadow transition-all duration-200 cursor-pointer disabled:opacity-60 mb-5 group"
           >
             <GoogleIcon className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-105" />
-            <span>Masuk dengan Google</span>
+            <span>Sign in with Google</span>
           </button>
 
           {/* Divider */}
@@ -130,7 +134,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-[#E8ECE8]" />
             </div>
             <span className="relative bg-white px-3 text-[11px] font-medium text-[#7A8E80]">
-              atau masuk dengan email
+              or continue with email
             </span>
           </div>
 
@@ -141,14 +145,14 @@ export default function LoginPage() {
             {mode === "signup" && (
               <div>
                 <label className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
-                  Nama lengkap
+                  Full name
                 </label>
                 <div className="relative">
                   <UserIcon className="w-4 h-4 text-[#8C9E91] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Dimas Prakoso"
+                    placeholder="e.g. Alex Morgan"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-[#D5E1D7] text-xs sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-1 focus:ring-[#224431] bg-[#FAF8F5]/60 focus:bg-white transition-all"
@@ -160,14 +164,14 @@ export default function LoginPage() {
             {/* Email / Username field */}
             <div>
               <label className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
-                Email atau nama pengguna
+                Email or username
               </label>
               <div className="relative">
                 <UserIcon className="w-4 h-4 text-[#8C9E91] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
-                  placeholder="Masukkan email atau nama pengguna"
+                  placeholder="Enter email or username"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-[#D5E1D7] text-xs sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-1 focus:ring-[#224431] bg-[#FAF8F5]/60 focus:bg-white transition-all"
@@ -178,14 +182,14 @@ export default function LoginPage() {
             {/* Password field */}
             <div>
               <label className="text-xs font-bold text-[#1E3A2B] block mb-1.5">
-                Kata sandi
+                Password
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-[#8C9E91] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  placeholder="Masukkan kata sandi"
+                  placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-10 py-3 rounded-xl border border-[#D5E1D7] text-xs sm:text-sm font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-1 focus:ring-[#224431] bg-[#FAF8F5]/60 focus:bg-white transition-all"
@@ -201,7 +205,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Options Row: Ingat saya & Lupa kata sandi */}
+            {/* Options Row: Remember me & Forgot password */}
             {mode === "login" && (
               <div className="flex items-center justify-between pt-1">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -211,14 +215,14 @@ export default function LoginPage() {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-[#CBD8CE] text-[#224431] accent-[#224431] cursor-pointer"
                   />
-                  <span className="text-xs text-[#5B6D60]">Ingat saya</span>
+                  <span className="text-xs text-[#5B6D60]">Remember me</span>
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert("Silakan daftar akun baru atau gunakan opsi Google Sign In.")}
+                  onClick={() => alert("Please sign up for a new account or use Google Sign In.")}
                   className="text-xs text-[#224431] font-semibold hover:underline cursor-pointer"
                 >
-                  Lupa kata sandi?
+                  Forgot password?
                 </button>
               </div>
             )}
@@ -232,9 +236,9 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
               ) : mode === "login" ? (
-                "Masuk"
+                "Sign In"
               ) : (
-                "Daftar Sekarang"
+                "Create Account"
               )}
             </button>
           </form>
@@ -243,7 +247,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             {mode === "login" ? (
               <p className="text-xs text-[#5B6D60]">
-                Belum punya akun?{" "}
+                Don&apos;t have an account?{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -252,12 +256,12 @@ export default function LoginPage() {
                   }}
                   className="font-bold text-[#224431] hover:underline cursor-pointer"
                 >
-                  Daftar gratis
+                  Sign up for free
                 </button>
               </p>
             ) : (
               <p className="text-xs text-[#5B6D60]">
-                Sudah punya akun?{" "}
+                Already have an account?{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -266,7 +270,7 @@ export default function LoginPage() {
                   }}
                   className="font-bold text-[#224431] hover:underline cursor-pointer"
                 >
-                  Masuk di sini
+                  Sign in here
                 </button>
               </p>
             )}
@@ -275,7 +279,7 @@ export default function LoginPage() {
           {/* Privacy & Trust Badge */}
           <div className="mt-6 flex items-center justify-center gap-1.5 text-[11px] text-[#788C7E]">
             <ShieldCheck className="w-3.5 h-3.5 text-[#20743E]" />
-            <span>Enkripsi kata sandi & otorisasi OAuth terproteksi</span>
+            <span>Encrypted password & secure OAuth authorization</span>
           </div>
 
         </div>
@@ -284,14 +288,14 @@ export default function LoginPage() {
         <div className="pt-6 border-t border-[#F0F4F1] flex flex-col sm:flex-row items-center justify-between text-xs text-[#7A8E80] gap-3">
           <div className="flex items-center gap-4">
             <a href="#privasi" className="hover:text-[#1E3A2B] transition-colors">
-              Kebijakan Privasi
+              Privacy Policy
             </a>
             <span>•</span>
             <a href="#syarat" className="hover:text-[#1E3A2B] transition-colors">
-              Syarat & Ketentuan
+              Terms of Service
             </a>
           </div>
-          <p>© 2026 Sakuwise. Semua hak dilindungi.</p>
+          <p>© 2026 Sakuwise. All rights reserved.</p>
         </div>
 
       </div>
@@ -299,14 +303,14 @@ export default function LoginPage() {
       {/* ================= RIGHT COLUMN: VISUAL SHOWCASE ================= */}
       <div className="hidden lg:flex flex-col justify-between bg-[#FAF8F5] border-l border-[#EBEFEA] p-10 lg:p-14 relative overflow-hidden">
         
-        {/* Top Right: Link Kembali ke Beranda */}
+        {/* Top Right: Link Back to Home */}
         <div className="flex justify-end">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-xs font-semibold text-[#5B6D60] hover:text-[#1E3A2B] transition-colors py-2 px-3.5 rounded-lg hover:bg-black/[0.03]"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Kembali ke beranda</span>
+            <span>Back to home</span>
           </Link>
         </div>
 
@@ -316,17 +320,17 @@ export default function LoginPage() {
           {/* Pill Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FEF3E2] border border-[#FDE5C5] text-xs font-bold text-[#9A5B15] mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E08C38]" />
-            <span>Satu langkah bijak setiap hari.</span>
+            <span>One smart move every day.</span>
           </div>
 
           {/* Headline Text */}
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1E3A2B] tracking-tight leading-tight">
-            Uang lebih terarah. <br />
-            Hidup lebih tenang.
+            Smart money, <br />
+            peaceful life.
           </h2>
 
           <p className="mt-2.5 text-sm text-[#5B6D60] leading-relaxed mb-6">
-            Semua saku, rencana, dan tujuanmu di satu tempat.
+            All your pockets, plans, and goals in one place.
           </p>
 
           {/* Hero Card Preview Mockup (Clean, 0 collisions) */}

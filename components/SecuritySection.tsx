@@ -5,38 +5,38 @@ export default function SecuritySection() {
   const securityPillars = [
     {
       icon: Lock,
-      title: "Enkripsi Setara Perbankan",
-      desc: "Semua data transaksi dienkripsi dengan standar AES-256 dan protokol SSL/TLS termutakhir.",
+      title: "Bank-Grade Encryption",
+      desc: "All transaction data is encrypted with AES-256 standard and state-of-the-art SSL/TLS protocols.",
     },
     {
       icon: EyeOff,
-      title: "Privasi Tanpa Kompromi",
-      desc: "Kami tidak pernah menjual data atau riwayat belanjamu kepada pihak ketiga manapun.",
+      title: "Uncompromised Privacy",
+      desc: "We never sell your personal data or transaction history to any third party under any circumstances.",
     },
     {
       icon: KeyRound,
-      title: "Otentikasi Dua Faktor (2FA)",
-      desc: "Akses akunmu terlindungi ganda dengan biometrik (FaceID/Fingerprint) dan OTP aman.",
+      title: "Secure Authentication",
+      desc: "Protected with Google OAuth, encrypted credentials, and secure multi-factor session protocols.",
     },
     {
       icon: Shield,
-      title: "Kepatuhan Regulasi",
-      desc: "Mengikuti prinsip perlindungan data pribadi dan standar keamanan sistem finansial digital.",
+      title: "Regulatory Compliance",
+      desc: "Built in adherence to personal data protection regulations and digital financial privacy standards.",
     },
   ];
 
   return (
-    <section id="keamanan" className="py-20 bg-[#F3F6F3] border-y border-[#E4ECE4]">
+    <section id="security" className="py-20 bg-[#F3F6F3] border-y border-[#E4ECE4]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mb-12">
           <p className="text-xs font-bold uppercase tracking-widest text-[#6E8172]">
-            Perlindungan Maksimal
+            Maximum Protection
           </p>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1E3A2B] tracking-tight mt-2.5">
-            Keamanan finansialmu adalah prioritas mutlak kami.
+            Your financial security is our highest priority.
           </h2>
           <p className="text-base text-[#55695C] mt-3">
-            Sakuwise dirancang dengan arsitektur zero-trust, memastikan seluruh informasi keuanganmu selalu terlindungi.
+            Sakuwise is architected with privacy-first principles, ensuring all your financial records stay safe and protected.
           </p>
         </div>
 

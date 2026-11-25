@@ -207,7 +207,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Add New Category
-  const addCategory = (name: string, budget: number, desc: string = "Saku Anggaran Baru") => {
+  const addCategory = (name: string, budget: number, desc: string = "New Budget Pocket") => {
     const newCat: BudgetCategory = {
       id: `cat-${Date.now()}`,
       name,
@@ -263,8 +263,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const resetToSampleData = () => {
     const sampleAllowance = 3000000;
     const sampleTransactions: Transaction[] = [
-      { id: "tx-1", name: "Lunch at campus", time: "Hari ini · 12:30", category: "Food & drinks", amount: 28000 },
-      { id: "tx-2", name: "Afternoon coffee", time: "Hari ini · 09:15", category: "Food & drinks", amount: 17000 },
+      { id: "tx-1", name: "Lunch at campus", time: "Today · 12:30", category: "Food & drinks", amount: 28000 },
+      { id: "tx-2", name: "Afternoon coffee", time: "Today · 09:15", category: "Food & drinks", amount: 17000 },
       { id: "tx-3", name: "Ride to campus", time: "16 Nov · 07:45", category: "Transport", amount: 18000 },
       { id: "tx-4", name: "Dinner with friends", time: "16 Nov · 18:30", category: "Food & drinks", amount: 35000 },
       { id: "tx-5", name: "Course textbook", time: "15 Nov · 14:20", category: "Academic needs", amount: 75000 },
@@ -280,11 +280,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       { id: "emergency", name: "Emergency fund", desc: "For the unexpected", budget: 150000, spent: 25000 },
     ];
     const sampleBills: BillItem[] = [
-      { id: "b1", day: 20, name: "Wi-Fi subscription", due: "Jatuh tempo 20 Nov · 3 hari lagi", amount: 100000, status: "Upcoming", category: "Accommodation" },
-      { id: "b2", day: 25, name: "Boarding house (Kos)", due: "Jatuh tempo 25 Nov · 8 hari lagi", amount: 800000, status: "Upcoming", category: "Accommodation" },
+      { id: "b1", day: 20, name: "Wi-Fi subscription", due: "Due 20 Nov · 3 days left", amount: 100000, status: "Upcoming", category: "Accommodation" },
+      { id: "b2", day: 25, name: "Boarding house / Rent", due: "Due 25 Nov · 8 days left", amount: 800000, status: "Upcoming", category: "Accommodation" },
     ];
     const sampleGoals: SavingsGoal[] = [
-      { id: "g1", title: "New laptop fund", subtitle: "Untuk skripsi & produktivitas", current: 450000, target: 1500000, color: "bg-[#244833]", deadline: "Maret 2027" },
+      { id: "g1", title: "New laptop fund", subtitle: "For thesis & productivity", current: 450000, target: 1500000, color: "bg-[#244833]", deadline: "March 2027" },
     ];
 
     setAllowance(sampleAllowance);

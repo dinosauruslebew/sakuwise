@@ -66,8 +66,8 @@ export default function Sidebar({
     setMobileOpen(false);
   };
 
-  const displayName = user?.name || user?.email?.split("@")[0] || "Akun Saya";
-  const displayRole = user?.role || "Personal account";
+  const displayName = user?.name || "Najwa";
+  const displayRole = user?.role || "Student account";
 
   return (
     <>
@@ -170,7 +170,7 @@ export default function Sidebar({
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl shadow-xl border border-[#DCE4DD] p-2 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150 z-30">
                 <div className="px-3 py-2 border-b border-[#F0F4F1]">
                   <p className="text-xs font-bold text-[#1E3A2B]">{displayName}</p>
-                  <p className="text-[10px] text-[#718275] truncate">
+                  <p className="text-[11px] text-[#718275] truncate">
                     {user?.email || "najwa.finance@student.ac.id"}
                   </p>
                 </div>

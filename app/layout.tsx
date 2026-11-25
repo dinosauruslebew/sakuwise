@@ -13,25 +13,25 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Sakuwise - Kelola Keuangan Pribadi Lebih Bijak & Terarah",
+  title: "Sakuwise - Smart Personal Finance & Budgeting",
   description:
-    "Bagi uang ke saku yang tepat, pahami pengeluaran, dan wujudkan tujuanmu. Semua lebih simpel bersama Sakuwise. Manage your money, wisely.",
+    "Organize your money into the right pockets, understand expenses, and achieve your goals. Smarter financial planning with Sakuwise. Manage your money, wisely.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
       { url: "/icon.png", type: "image/png", sizes: "192x192" },
-      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
     ],
     shortcut: "/favicon.ico",
     apple: "/icon.png",
   },
   keywords: [
     "Sakuwise",
-    "keuangan pribadi",
+    "personal finance",
     "budgeting app",
-    "pengatur keuangan",
-    "saku anggaran",
-    "fintech indonesia",
+    "expense tracker",
+    "pocket budgeting",
+    "smart money management",
   ],
 };
 
@@ -43,7 +43,7 @@ export default function RootLayout({
   return React.createElement(
     "html",
     {
-      lang: "id",
+      lang: "en",
       className: `${plusJakartaSans.variable} scroll-smooth`,
       "data-scroll-behavior": "smooth",
     },

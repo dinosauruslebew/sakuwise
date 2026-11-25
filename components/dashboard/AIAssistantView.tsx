@@ -3,36 +3,112 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, Send, Bot, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useFinance, formatRupiah } from "@/context/FinanceContext";
+
+interface ChatMessage {
+  id: string;
+  sender: "ai" | "user";
+  text: string;
+  time: string;
+  isError?: boolean;
+}
+
+const nowTime = () =>
+  new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+
+const CHAT_STORAGE_KEY = "sakuwise_ai_chat";
+const MAX_SAVED_MESSAGES = 50;
+
+function isChatMessage(v: unknown): v is ChatMessage {
+  if (!v || typeof v !== "object") return false;
+  const m = v as Record<string, unknown>;
+  return (
+    typeof m.id === "string" &&
+    (m.sender === "ai" || m.sender === "user") &&
+    typeof m.text === "string" &&
+    typeof m.time === "string"
+  );
+}
 
 export default function AIAssistantView() {
   const { user } = useAuth();
-  const userName = user?.name || "Najwa";
+  const { summary, income, transactions, goals } = useFinance();
+  const userName = user?.name || "there";
+  const storageKey = user?.email ? `${CHAT_STORAGE_KEY}:${user.email}` : null;
+
+  // Compact snapshot of the user's real finance data, sent to the server as context for the AI
+  const financeContext = useMemo(
+    () => ({
+      today: summary.today,
+      monthlyAllowance: income,
+      nextAllowanceDate: summary.nextAllowanceDate,
+      daysLeftUntilNextAllowance: summary.daysLeft,
+      totalSpentThisPeriod: summary.totalSpent,
+      remainingBalance: summary.remaining,
+      dailySpendingLimit: summary.dailyLimit,
+      spentToday: summary.spentToday,
+      leftToday: summary.leftToday,
+      totalBudgetAllocated: summary.totalBudget,
+      unallocatedAllowance: summary.unallocated,
+      categories: summary.categoryStats.map((c) => ({
+        name: c.name,
+        budget: c.budget,
+        spent: c.spent,
+        remaining: c.remaining,
+        overBudget: c.over,
+      })),
+      last7DaysSpending: summary.last7Days.map((d) => ({ date: d.date, total: d.total })),
+      recentTransactions: transactions.slice(0, 20).map((t) => ({
+        name: t.name,
+        category: t.category,
+        amount: t.amount,
+        date: t.date,
+      })),
+      unpaidBills: summary.bills
+        .filter((b) => !b.paid)
+        .map((b) => ({
+          name: b.name,
+          amount: b.amount,
+          dueDate: b.dueDate,
+          daysUntilDue: b.daysUntil,
+          overdue: b.overdue,
+        })),
+      savingsGoals: goals.map((g) => ({
+        title: g.title,
+        current: g.current,
+        target: g.target,
+        deadline: g.deadline,
+      })),
+    }),
+    [summary, income, transactions, goals]
+  );
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: "welcome",
       sender: "ai",
-      text: `Halo ${userName}! Saya asisten finansial Sakuwise kamu. Berdasarkan catatan bulan November ini, kamu sudah menghabiskan Rp1.740.000 dari allowance Rp3.000.000. Sisa kuota harianmu adalah Rp90.000/hari untuk 14 hari ke depan. Ada yang ingin kamu diskusikan?`,
-      time: "10:30",
-    },
-    {
-      id: "2",
-      sender: "user",
-      text: "Bagaimana cara menghemat pengeluaran saku makan minggu ini agar tidak boncos?",
-      time: "10:31",
-    },
-    {
-      id: "3",
-      sender: "ai",
-      text: `Saran bijak untuk saku makanmu:\n\n1. 🍱 Meal Prep / Bawa Bekal: Batasi jajan di kantin kampus menjadi 1x sehari saja.\n2. ☕ Kopi Hemat: Ganti afternoon coffee harian di cafe dengan cold brew buatan sendiri atau air putih botol.\n3. 🎯 Target Harian: Jaga pengeluaran makan di angka maksimal Rp27.000 per hari, maka sisa Rp390.000 di saku makanmu akan cukup sampai tanggal 30 November!`,
-      time: "10:31",
+      text: `Hello ${userName}! I'm your Sakuwise AI financial advisor. So far, you've spent ${formatRupiah(
+        summary.totalSpent
+      )} out of your ${formatRupiah(income)} monthly allowance. Your daily spending limit is currently ${formatRupiah(
+        summary.dailyLimit
+      )} for the remaining ${summary.daysLeft} days. How can I help you optimize your finances today?`,
+      time: nowTime(),
     },
   ]);
 
   const [inputMessage, setInputMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
+
+  // Auto-scroll whenever messages change or loading state toggles
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
 
   // Load saved chat history for this account (deferred so setState is not called synchronously in the effect)
   useEffect(() => {
@@ -66,13 +142,9 @@ export default function AIAssistantView() {
   }, [messages, storageKey, loadedKey]);
 
   const clearHistory = () => {
-    if (!window.confirm("Hapus seluruh riwayat chat dengan asisten AI?")) return;
+    if (!window.confirm("Are you sure you want to clear your AI chat history?")) return;
     setMessages((prev) => prev.filter((m) => m.id === "welcome"));
   };
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, loading]);
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
@@ -87,23 +159,54 @@ export default function AIAssistantView() {
     const history = [...messages, userMsg];
     setMessages(history);
     setInputMessage("");
+    setLoading(true);
 
-    // Simulate smart AI reply
-    setTimeout(() => {
-      const aiReply = {
-        id: (Date.now() + 1).toString(),
-        sender: "ai",
-        text: `Analisis cerdas untuk pertanyaanmu: Rencanamu sangat realistis. Jika kamu menahan pengeluaran hiburan akhir pekan ini, kamu bisa menyisihkan tambahan Rp50.000 langsung ke target tabungan 'New laptop fund'!`,
-        time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, aiReply]);
-    }, 800);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: history
+            .filter((m) => !m.isError)
+            .map((m) => ({ role: m.sender === "user" ? "user" : "model", text: m.text })),
+          context: financeContext,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { reply?: string; error?: string };
+
+      if (!res.ok || !data.reply) {
+        throw new Error(data.error || "Failed to receive a response from AI assistant.");
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `a-${Date.now()}`, sender: "ai", text: data.reply as string, time: nowTime() },
+      ]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `e-${Date.now()}`,
+          sender: "ai",
+          text: e instanceof Error ? e.message : "An error occurred. Please try again later.",
+          time: nowTime(),
+          isError: true,
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    void sendMessage(inputMessage);
   };
 
   const quickQuestions = [
-    "Bagaimana evaluasi pengeluaran mingguan saya?",
-    "Apakah tabungan laptop saya sesuai target?",
-    "Simulasikan jika saya belanja Rp100.000 hari ini",
+    "How is my spending evaluating this month?",
+    "Which category is closest to its budget limit?",
+    "Simulate spending Rp100.000 today",
   ];
 
   return (
@@ -115,9 +218,10 @@ export default function AIAssistantView() {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-[#1E3A2B]">SakuWise AI Smart Advisor</h3>
+            <h3 className="text-base font-bold text-[#1E3A2B]">Sakuwise AI Smart Advisor</h3>
             <p className="text-xs text-[#596D5F]">
-              Didukung model analisis pengeluaran personal tanpa membagikan data pribadimu.
+              Powered by Gemini. Your high-level financial summary (no credentials or email) is shared with the AI
+              model only when you send a prompt.
             </p>
           </div>
         </div>
@@ -127,7 +231,7 @@ export default function AIAssistantView() {
           className="flex-shrink-0 flex items-center gap-1.5 text-[11px] font-medium text-[#596D5F] hover:text-[#1E3A2B] hover:bg-[#DCE5DE] px-3 py-1.5 rounded-full transition-colors cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          Hapus riwayat
+          Clear chat
         </button>
       </div>
 
@@ -183,11 +287,11 @@ export default function AIAssistantView() {
               </div>
               <div className="rounded-2xl p-4 text-xs sm:text-sm bg-[#FAF8F5] text-[#596D5F] border border-[#E7EDE7] flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Sedang menganalisis keuanganmu...
+                Analyzing your finances...
               </div>
             </div>
           )}
-          <div ref={bottomRef} />
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Quick Suggestions */}
@@ -209,7 +313,7 @@ export default function AIAssistantView() {
         <form onSubmit={handleSend} className="relative flex items-center gap-2 pt-2">
           <input
             type="text"
-            placeholder="Tanyakan rekomendasi atau hitung pengeluaran..."
+            placeholder="Ask for advice, budget tips, or calculate expenses..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             disabled={loading}

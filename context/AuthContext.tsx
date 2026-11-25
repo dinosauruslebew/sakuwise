@@ -44,6 +44,8 @@ const DEFAULT_USERS_DB: Record<string, { name: string; passwordHash: string; rol
   },
 };
 
+const DEMO_LOGIN_EMAILS = Object.keys(DEFAULT_USERS_DB);
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -153,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!normalizedEmail || !pass) {
       setIsLoading(false);
-      return { success: false, error: "Email dan kata sandi wajib diisi." };
+      return { success: false, error: "Email and password are required." };
     }
 
     const account = accounts[normalizedEmail];
@@ -161,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       return {
         success: false,
-        error: "Email atau akun belum terdaftar. Silakan daftar akun baru terlebih dahulu.",
+        error: "Account not found. Please sign up for a new account first.",
       };
     }
 
@@ -169,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       return {
         success: false,
-        error: "Kata sandi salah. Silakan periksa kembali kata sandi Anda.",
+        error: "Incorrect password. Please verify and try again.",
       };
     }
 
@@ -197,19 +199,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!name.trim()) {
       setIsLoading(false);
-      return { success: false, error: "Nama lengkap wajib diisi." };
+      return { success: false, error: "Full name is required." };
     }
 
     const normalizedEmail = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(normalizedEmail)) {
       setIsLoading(false);
-      return { success: false, error: "Format email tidak valid." };
+      return { success: false, error: "Please enter a valid email address." };
     }
 
     if (pass.length < 6) {
       setIsLoading(false);
-      return { success: false, error: "Kata sandi minimal 6 karakter." };
+      return { success: false, error: "Password must be at least 6 characters long." };
     }
 
     // Supabase Sign Up if configured
@@ -253,7 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       return {
         success: false,
-        error: "Email sudah terdaftar. Silakan masuk menggunakan kata sandi Anda.",
+        error: "This email is already registered. Please sign in with your password.",
       };
     }
 

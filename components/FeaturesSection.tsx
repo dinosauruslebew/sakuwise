@@ -16,49 +16,48 @@ interface FeaturesSectionProps {
 export default function FeaturesSection({ onSelectFeature }: FeaturesSectionProps) {
   const features = [
     {
-      id: "saku-otomatis",
+      id: "automated-pockets",
       icon: CalendarDays,
-      title: "Pembagian Saku Otomatis",
+      title: "Automated Pocket Budgeting",
       description:
-        "Pisahkan uang untuk kebutuhan, keinginan, dan tabungan. Setiap rupiah punya tujuan.",
-      cta: "Kenali Saku Anggaran",
-      badge: "Fondasi Budgeting",
+        "Separate funds for essentials, lifestyle, and savings. Every single rupiah has its purpose.",
+      cta: "Explore Budget Pockets",
+      badge: "Budgeting Core",
     },
     {
-      id: "analisis-realtime",
+      id: "realtime-insights",
       icon: BarChart3,
-      title: "Analisis Pengeluaran Real-time",
+      title: "Real-time Expense Insights",
       description:
-        "Lihat ke mana uangmu pergi lewat ringkasan yang jelas. Ambil keputusan lebih percaya diri.",
-      cta: "Pahami arus kasmu",
-      badge: "Insight Instan",
+        "See exactly where your money goes through clear visuals. Make informed decisions with confidence.",
+      cta: "Understand your cash flow",
+      badge: "Instant Insights",
     },
     {
-      id: "target-impian",
+      id: "dream-goals",
       icon: Target,
-      title: "Target Tabungan Impian",
+      title: "Dream Savings Goals",
       description:
-        "Liburan, rumah, atau dana darurat. Bangun kebiasaan baik, selangkah lebih dekat tiap hari.",
-      cta: "Wujudkan tujuanmu",
+        "Vacations, new tech, or emergency buffer. Build great habits, one day at a time.",
+      cta: "Reach your goals",
       badge: "Goal Tracker",
     },
   ];
 
   return (
-    <section id="fitur" className="py-20 sm:py-28 relative">
+    <section id="features" className="py-20 sm:py-28 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="max-w-2xl mb-14 sm:mb-16">
           <p className="text-xs font-bold uppercase tracking-widest text-[#6E8172]">
-            Lebih Rapi, Lebih Tenang.
+            More Organized, More at Peace.
           </p>
           <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold text-[#1E3A2B] tracking-tight mt-2.5 leading-tight">
-            Satu tempat, lebih banyak kendali.
+            One platform, complete control.
           </h2>
           <p className="text-base sm:text-lg text-[#55695C] mt-3.5 leading-relaxed">
-            Dari kebutuhan hari ini sampai mimpi di masa depan, atur semuanya
-            dengan bijak.
+            From daily essentials to future ambitions, organize your entire financial life with clarity.
           </p>
         </div>
 
@@ -105,7 +104,7 @@ export default function FeaturesSection({ onSelectFeature }: FeaturesSectionProp
         {/* Security & Ownership Trust Banner */}
         <div className="mt-14 sm:mt-16 flex items-center justify-center gap-2 text-xs sm:text-sm text-[#617465] font-medium text-center">
           <ShieldCheck className="w-4 h-4 text-[#20743E] stroke-[2.5]" />
-          <span>Data tetap milikmu. Rencanamu tetap di tanganmu.</span>
+          <span>Your data remains private and secure. Your financial future in your own hands.</span>
         </div>
 
       </div>

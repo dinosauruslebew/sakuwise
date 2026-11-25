@@ -1,34 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { Download, Search, Check } from "lucide-react";
-import { Transaction } from "./OverviewView";
+import { Download, Search, Check, Trash2 } from "lucide-react";
+import {
+  useFinance,
+  formatRupiah,
+  formatShortDate,
+  describeDate,
+  parseISODate,
+  addDays,
+  todayISO,
+} from "@/context/FinanceContext";
+import { exportTransactionsXlsx } from "@/lib/exportTransactions";
 
-interface ExpensesViewProps {
-  transactions: Transaction[];
-  onAddExpense: (expense: Omit<Transaction, "id">) => void;
-  totalSpent: number;
-}
-
-export default function ExpensesView({
-  transactions,
-  onAddExpense,
-  totalSpent,
-}: ExpensesViewProps) {
-  const allowance = 3000000;
-  const remaining = allowance - totalSpent;
-  const percentSpent = Math.min(100, Math.round((totalSpent / allowance) * 100));
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  
-  // Right side panel form state
-  const [amountInput, setAmountInput] = useState("");
-  const [descInput, setDescInput] = useState("");
-  const [categoryInput, setCategoryInput] = useState<Transaction["category"]>("Food & drinks");
-  const [dateInput, setDateInput] = useState("17 November 2026");
-  const [noteInput, setNoteInput] = useState("");
-  const [savedSuccess, setSavedSuccess] = useState(false);
+const PAGE_SIZE = 10;
 
 const categoryBadges: Record<string, { bg: string; text: string }> = {
   "Food & drinks": { bg: "bg-[#FEF1E1]", text: "text-[#9A5B15]" },
@@ -96,8 +81,9 @@ export default function ExpensesView() {
     const result = addTransaction({
       name: descInput,
       amount: cleanAmount,
-      category: categoryInput,
-      time: `17 Nov 2026 · ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`,
+      category: activeCategory,
+      date: dateInput,
+      note: noteInput,
     });
     if (!result.ok) {
       setFormError(result.error || "Could not save this expense.");
@@ -109,29 +95,6 @@ export default function ExpensesView() {
       setSavedSuccess(false);
       resetForm();
     }, 900);
-  };
-
-  const handleExportCSV = () => {
-    if (transactions.length === 0) {
-      alert("Belum ada data transaksi untuk diekspor.");
-      return;
-    }
-    const headers = ["ID", "Nama Transaksi", "Kategori", "Nominal", "Waktu"];
-    const rows = transactions.map((t) => [
-      t.id,
-      `"${t.name.replace(/"/g, '""')}"`,
-      `"${t.category}"`,
-      t.amount,
-      `"${t.time}"`,
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `sakuwise_transaksi_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   // Apply filters
@@ -156,13 +119,13 @@ export default function ExpensesView() {
     const year = parseISODate(nextAllowanceDate).getFullYear();
     const periodLabel =
       period === "all"
-        ? "Semua waktu"
+        ? "All time"
         : period === "week"
-          ? "7 hari terakhir (sampai " + formatShortDate(today) + ")"
+          ? "Last 7 days (until " + formatShortDate(today) + ")"
           : formatShortDate(periodStart) + " - " + formatShortDate(addDays(nextAllowanceDate, -1)) + " " + year;
     const notes: string[] = [];
-    if (selectedCategory !== "all") notes.push("Kategori: " + selectedCategory);
-    if (searchTerm.trim()) notes.push("Pencarian: " + searchTerm.trim());
+    if (selectedCategory !== "all") notes.push("Category: " + selectedCategory);
+    if (searchTerm.trim()) notes.push("Search: " + searchTerm.trim());
     await exportTransactionsXlsx({
       transactions: filtered,
       periodLabel,
@@ -186,32 +149,32 @@ export default function ExpensesView() {
       {/* 1. TOP CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
-          <p className="text-xs font-semibold text-[#718576]">Monthly allowance</p>
+          <p className="text-xs font-medium text-[#718576]">Monthly allowance</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-[#1E3A2B] tracking-tight mt-1.5">
-            Rp3.000.000
+            {formatRupiah(income)}
           </p>
-          <p className="text-xs text-[#7D9183] mt-2">
-            Next allowance · 1 Dec 2026
-          </p>
+          <p className="text-xs text-[#7D9183] mt-2">Next allowance - {nextAllowanceLabel}</p>
         </div>
 
         <div className="bg-[#FFF9F0] rounded-2xl p-6 border border-[#FBEAD4] shadow-2xs">
-          <p className="text-xs font-semibold text-[#8F7249]">Spent this month</p>
+          <p className="text-xs font-medium text-[#8F7249]">Spent this month</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-[#1E3A2B] tracking-tight mt-1.5">
             {formatRupiah(totalSpent)}
           </p>
           <p className="text-xs text-[#8F7249] mt-2 font-medium">
-            {percentSpent}% dari jatah bulananmu
+            {percentSpent}% of your monthly allowance
           </p>
         </div>
 
         <div className="bg-[#224431] text-white rounded-2xl p-6 border border-[#2D583F] shadow-md">
           <p className="text-xs font-medium text-[#B4CEBD]">Remaining balance</p>
           <p className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1.5">
-            Rp{remaining.toLocaleString("id-ID")}
+            {formatRupiah(remaining)}
           </p>
           <p className="text-xs text-[#A1BFA9] mt-2">
-            42% left for the next 14 days
+            {remaining < 0
+              ? "You've gone over your allowance"
+              : `${percentRemaining}% left for the next ${daysLeft} ${daysLeft === 1 ? "day" : "days"}`}
           </p>
         </div>
       </div>
@@ -224,13 +187,14 @@ export default function ExpensesView() {
             <div>
               <h3 className="text-base font-bold text-[#1E3A2B]">Your spending, all in one place</h3>
               <p className="text-xs text-[#718576]">
-                Setiap catatan pengeluaran membantumu memahami pola belanja secara lebih bijak.
+                Every entry helps you build a better picture of your money.
               </p>
             </div>
             <button
               type="button"
-              onClick={() => alert("Mengunduh laporan transaksi Sakuwise format CSV...")}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A2B] hover:text-[#0F2218] transition-colors cursor-pointer self-start sm:self-auto"
+              onClick={handleExport}
+              disabled={filtered.length === 0}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A2B] hover:text-[#0F2218] transition-colors cursor-pointer self-start sm:self-auto disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span>Export Excel</span>
               <Download className="w-3.5 h-3.5" />
@@ -243,7 +207,7 @@ export default function ExpensesView() {
               <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Cari transaksi..."
+                placeholder="Search transactions..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -262,85 +226,121 @@ export default function ExpensesView() {
                 }}
                 className="w-full px-3 py-2 rounded-xl border border-[#D9E3DC] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white cursor-pointer"
               >
-                <option value="all">All categories ▾</option>
-                <option value="Food & drinks">Food & drinks</option>
-                <option value="Transport">Transport</option>
-                <option value="Academic needs">Academic needs</option>
-                <option value="Personal">Personal</option>
-                <option value="Accommodation">Accommodation</option>
-                <option value="Emergency fund">Emergency fund</option>
+                <option value="all">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="sm:col-span-3">
-              <select className="w-full px-3 py-2 rounded-xl border border-[#D9E3DC] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white cursor-pointer">
-                <option>This month ▾</option>
-                <option>Last month</option>
-                <option>All time</option>
+              <select
+                value={period}
+                onChange={(e) => {
+                  setPeriod(e.target.value as "period" | "week" | "all");
+                  setPage(1);
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-[#D9E3DC] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white cursor-pointer"
+              >
+                <option value="period">This period</option>
+                <option value="week">Last 7 days</option>
+                <option value="all">All time</option>
               </select>
             </div>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[#F0F4F0] text-[10px] font-bold uppercase tracking-wider text-[#7A8E80]">
-                  <th className="pb-3">Transaction</th>
-                  <th className="pb-3">Category</th>
-                  <th className="pb-3 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F5F8F5]">
-                {filteredTransactions.map((t) => {
-                  const badgeStyle = categoryBadges[t.category] || {
-                    bg: "bg-gray-100",
-                    text: "text-gray-700",
-                  };
-                  return (
-                    <tr key={t.id} className="group hover:bg-[#FAF8F5] transition-colors">
-                      <td className="py-3.5 pr-4">
-                        <p className="font-semibold text-[#1E3A2B]">{t.name}</p>
-                        <p className="text-[10px] text-[#7E9184]">{t.time}</p>
-                      </td>
-                      <td className="py-3.5 pr-4">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium ${badgeStyle.bg} ${badgeStyle.text}`}
-                        >
-                          {t.category}
-                        </span>
-                      </td>
-                      <td className="py-3.5 text-right font-bold text-[#1E3A2B]">
-                        -Rp{t.amount.toLocaleString("id-ID")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {visible.length === 0 ? (
+            <div className="py-12 text-center text-xs text-[#718576]">
+              {transactions.length === 0
+                ? "No expenses yet. Add your first one using the form."
+                : "No transactions match your filters."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#F0F4F0] text-[11px] font-bold uppercase tracking-wider text-[#7A8E80]">
+                    <th className="pb-3">Transaction</th>
+                    <th className="pb-3">Category</th>
+                    <th className="pb-3 text-right">Amount</th>
+                    <th className="pb-3 w-8" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F5F8F5]">
+                  {visible.map((t) => {
+                    const badgeStyle = categoryBadges[t.category] || {
+                      bg: "bg-gray-100",
+                      text: "text-gray-700",
+                    };
+                    return (
+                      <tr key={t.id} className="group hover:bg-[#FAF8F5] transition-colors">
+                        <td className="py-3.5 pr-4">
+                          <p className="font-semibold text-[#1E3A2B]">{t.name}</p>
+                          <p className="text-[11px] text-[#7E9184]">
+                            {describeDate(t.date, today)}
+                            {t.note ? ` - ${t.note}` : ""}
+                          </p>
+                        </td>
+                        <td className="py-3.5 pr-4">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeStyle.bg} ${badgeStyle.text}`}
+                          >
+                            {t.category}
+                          </span>
+                        </td>
+                        <td className={'py-3.5 text-right font-bold ' + (t.type === 'income' ? 'text-[#20743E]' : 'text-[#1E3A2B]')} >
+                          {t.type === 'income' ? `+${formatRupiah(t.amount)}` : `-${formatRupiah(t.amount)}`}
+                        </td>
+                        <td className="py-3.5 pl-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(t.id, t.name)}
+                            className="p-1 rounded-md text-gray-300 hover:text-[#B4491F] hover:bg-[#FBE9E2] transition-colors cursor-pointer"
+                            aria-label={`Delete ${t.name}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Pagination */}
           <div className="mt-5 pt-4 border-t border-[#F0F4F0] flex flex-col sm:flex-row items-center justify-between text-xs text-[#718576] gap-3">
-            <span>Showing 1-7 of 42 transactions</span>
+            <span>
+              {filtered.length === 0
+                ? "Showing 0 transactions"
+                : `Showing ${startIdx + 1}-${startIdx + visible.length} of ${filtered.length} transactions`}
+            </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="px-3 py-1 rounded-lg border border-[#D5E1D7] text-xs font-medium hover:bg-black/5"
+                disabled={safePage <= 1}
+                onClick={() => setPage(safePage - 1)}
+                className="px-3 py-1 rounded-lg border border-[#D5E1D7] text-xs font-medium hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                ← Previous
+                &larr; Previous
               </button>
               <button
                 type="button"
-                className="px-3 py-1 rounded-lg border border-[#D5E1D7] text-xs font-medium bg-[#E8EFEA] text-[#1E3A2B]"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage(safePage + 1)}
+                className="px-3 py-1 rounded-lg border border-[#D5E1D7] text-xs font-medium bg-[#E8EFEA] text-[#1E3A2B] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                Next →
+                Next &rarr;
               </button>
             </div>
           </div>
 
           <div className="mt-4 p-3 rounded-xl bg-[#FAF8F5] border border-[#E9EFEA] text-xs text-[#6B7E70]">
-            Missing something? Add cash purchases too — the little things count.
+            Missing something? Add cash purchases too. The little things count.
           </div>
         </div>
 
@@ -350,13 +350,13 @@ export default function ExpensesView() {
           <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
             <h3 className="text-sm font-bold text-[#1E3A2B]">Add an expense</h3>
             <p className="text-xs text-[#718576] mt-0.5 mb-4">
-              Catat pengeluaran baru langsung ke alokasi sakumu.
+              A few seconds now. More clarity later.
             </p>
 
             {savedSuccess ? (
-              <div className="py-8 text-center bg-[#E7F6EC] rounded-xl border border-[#CDEED5] animate-in fade-in duration-200">
+              <div className="py-8 text-center bg-[#E7F6EC] rounded-xl border border-[#CDEED5]">
                 <Check className="w-6 h-6 text-[#20743E] mx-auto mb-1 stroke-[3]" />
-                <p className="text-xs font-bold text-[#20743E]">Pengeluaran Berhasil Disimpan!</p>
+                <p className="text-xs font-bold text-[#20743E]">Expense Saved!</p>
               </div>
             ) : (
               <form onSubmit={handlePanelSubmit} className="space-y-3.5">
@@ -388,10 +388,10 @@ export default function ExpensesView() {
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Makan siang di kampus"
+                    placeholder="e.g. Lunch at campus"
                     value={descInput}
                     onChange={(e) => setDescInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D7E2D9] text-xs font-medium text-[#1E3A2B] focus:outline-none focus:border-[#224431]"
+                    className="w-full px-3 py-2 rounded-xl border border-[#D7E2D9] text-xs font-medium text-[#1E3A2B] focus:outline-none"
                   />
                 </div>
 
@@ -428,7 +428,7 @@ export default function ExpensesView() {
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Catatan tambahan (opsional)"
+                    placeholder="Add a little detail"
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
                     className="w-full px-3 py-1.5 rounded-xl border border-[#D7E2D9] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white resize-none"
@@ -444,11 +444,8 @@ export default function ExpensesView() {
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      setAmountInput("");
-                      setDescInput("");
-                    }}
-                    className="w-1/2 py-2 px-3 rounded-xl text-xs font-semibold text-[#576B5D] bg-[#FAF8F5] hover:bg-black/5"
+                    onClick={resetForm}
+                    className="w-1/2 py-2 px-3 rounded-xl text-xs font-semibold text-[#576B5D] bg-[#FAF8F5] hover:bg-black/5 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -467,13 +464,23 @@ export default function ExpensesView() {
             )}
           </div>
 
-          {/* Card: Rp45.000 left to spend today */}
-          <div className="bg-[#FEF7EC] rounded-2xl p-5 border border-[#FDE5C5]">
+          {/* Card: left to spend today */}
+          <div
+            className={`rounded-2xl p-5 border ${
+              overToday ? "bg-[#FBE9E2] border-[#F2C9B8]" : "bg-[#FEF7EC] border-[#FDE5C5]"
+            }`}
+          >
             <p className="text-sm font-bold text-[#1E3A2B]">
-              Rp45.000 left to spend today
+              {overToday
+                ? `${formatRupiah(-leftToday)} over today's limit`
+                : `${formatRupiah(leftToday)} left to spend today`}
             </p>
             <p className="text-xs text-[#826949] mt-1">
-              You&apos;re halfway through your Rp90.000 daily limit.
+              {overToday
+                ? `You've spent ${formatRupiah(spentToday)} of your ${formatRupiah(dailyLimit)} daily limit.`
+                : dailyLimit === 0
+                  ? "Your balance is used up until the next allowance."
+                  : `You've used ${todayPercent}% of your ${formatRupiah(dailyLimit)} daily limit.`}
             </p>
           </div>
         </div>
@@ -482,8 +489,8 @@ export default function ExpensesView() {
       {/* 3. BOTTOM BANNER */}
       <div className="bg-[#EBF1EC] rounded-2xl p-5 border border-[#DCE5DE] flex items-center justify-between text-xs text-[#526658]">
         <p>
-          <strong className="text-[#1E3A2B] font-bold">Catatan rapi. Rekomendasi lebih presisi.</strong>{" "}
-          Data alokasi dan AI Sakuwise bekerja optimal saat kamu rutin mencatat setiap transaksi.
+          <strong className="text-[#1E3A2B] font-bold">Good records. Better recommendations.</strong>{" "}
+          Your budget and AI guidance are only as accurate as the expenses you record.
         </p>
       </div>
     </div>

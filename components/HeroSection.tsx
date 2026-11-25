@@ -26,20 +26,19 @@ export default function HeroSection({ onOpenHowItWorks }: HeroSectionProps) {
             {/* Pill Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E8EFEA] border border-[#D5E1D7] text-xs font-semibold tracking-wider text-[#244833] uppercase shadow-2xs mb-6 sm:mb-8">
               <Sparkles className="w-3.5 h-3.5 text-[#E08C38] fill-[#E08C38]" />
-              <span>Teman Bijak untuk Uangmu</span>
+              <span>Smart Companion for Your Money</span>
             </div>
 
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold text-[#1E3A2B] tracking-tight leading-[1.14]">
-              Kelola Keuangan <br className="hidden sm:inline" />
-              Pribadi Lebih Bijak <br className="hidden sm:inline" />
-              <span className="text-[#1E3A2B]">& Terarah</span>
+              Manage Your Money <br className="hidden sm:inline" />
+              Wisely, Simply <br className="hidden sm:inline" />
+              <span className="text-[#1E3A2B]">& With Clarity</span>
             </h1>
 
             {/* Sub-heading text */}
             <p className="mt-6 text-base sm:text-lg text-[#55695C] leading-relaxed max-w-xl">
-              Bagi uang ke saku yang tepat, pahami pengeluaran, dan wujudkan
-              tujuanmu. Semua lebih simpel bersama Sakuwise.
+              Organize your money into dedicated pockets, track your everyday expenses, and reach your goals. All in one place with Sakuwise.
             </p>
 
             {/* CTA Buttons */}
@@ -49,7 +48,7 @@ export default function HeroSection({ onOpenHowItWorks }: HeroSectionProps) {
                 href="/signup"
                 className="inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-xl text-base font-semibold text-white bg-[#224431] hover:bg-[#163323] transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 group"
               >
-                <span>Coba Sakuwise Gratis</span>
+                <span>Try Sakuwise Free</span>
                 <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
               </a>
 
@@ -59,7 +58,7 @@ export default function HeroSection({ onOpenHowItWorks }: HeroSectionProps) {
                 onClick={onOpenHowItWorks}
                 className="inline-flex items-center justify-center gap-3 px-5 py-4 rounded-xl text-base font-medium text-[#1E3A2B] hover:text-[#0F2218] hover:bg-black/[0.04] transition-all duration-200 group cursor-pointer"
               >
-                <span>Kenali cara kerjanya</span>
+                <span>See how it works</span>
                 <span className="w-8 h-8 rounded-full border border-[#CBD9CD] flex items-center justify-center text-[#244833] group-hover:border-[#1E3A2B] group-hover:bg-[#E8EFEA] transition-colors">
                   <Play className="w-3.5 h-3.5 fill-[#244833] ml-0.5" />
                 </span>
@@ -70,12 +69,12 @@ export default function HeroSection({ onOpenHowItWorks }: HeroSectionProps) {
             <div className="mt-8 sm:mt-10 flex items-center gap-6 text-xs sm:text-sm text-[#55695C] font-medium">
               <div className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-[#20743E] stroke-[3]" />
-                <span>Gratis untuk mulai</span>
+                <span>Free to start</span>
               </div>
               <span className="text-gray-300">•</span>
               <div className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-[#20743E] stroke-[3]" />
-                <span>Tanpa kartu kredit</span>
+                <span>No credit card required</span>
               </div>
             </div>
 

@@ -19,57 +19,57 @@ import {
 
 const faqs = [
   {
-    q: "Bagaimana cara membagi uang ke beberapa saku anggaran?",
-    a: "Buka tab 'Monthly budget', lalu klik '+ Add category' untuk membuat saku baru. Masukkan nama saku (misal: Makan, Transport, Hiburan) dan tentukan alokasi rupiahnya. Sakuwise akan otomatis menghitung sisa anggaran yang belum dialokasikan.",
+    q: "How do I split my money into multiple budget pockets?",
+    a: "Open the 'Monthly Budget' tab and click '+ Add category' to create a new pocket. Enter the pocket name (e.g. Groceries, Transport, Entertainment) and allocate the budget amount. Sakuwise will automatically calculate your remaining unallocated balance.",
   },
   {
-    q: "Apakah data keuangan saya aman di Sakuwise?",
-    a: "Ya, semua data dienkripsi menggunakan standar AES-256. Data kamu tidak pernah dijual ke pihak ketiga. Kamu juga bisa mengekspor atau menghapus semua data kapan saja dari halaman Settings.",
+    q: "Is my financial data secure on Sakuwise?",
+    a: "Yes, all data is encrypted using industry-standard AES-256 protocols. Your data is never sold to third parties. You can also export or wipe all your stored data anytime from the Settings page.",
   },
   {
-    q: "Bagaimana AI Assistant Sakuwise bekerja?",
-    a: "AI Assistant menganalisis pola pengeluaranmu dan memberikan saran personal berbasis data. AI hanya membaca catatan transaksi yang kamu input — tidak terhubung ke rekening bank manapun tanpa izin eksplisit.",
+    q: "How does the Sakuwise AI Assistant work?",
+    a: "The AI Assistant analyzes your recorded spending patterns and provides personalized, actionable financial advice. It only reads the transaction records you choose to track—it never connects to any external bank accounts without your explicit consent.",
   },
   {
-    q: "Bisakah saya menggunakan Sakuwise untuk lebih dari satu sumber pemasukan?",
-    a: "Tentu! Di Monthly Budget, kamu bisa mengatur allowance dari beberapa sumber. Sakuwise menggabungkan semuanya menjadi satu tampilan total yang rapi.",
+    q: "Can I track multiple sources of income?",
+    a: "Absolutely! Under Monthly Budget, you can set up allowance or income streams from multiple sources. Sakuwise combines them seamlessly into one consolidated summary view.",
   },
   {
-    q: "Bagaimana cara mengatur pengingat tagihan?",
-    a: "Buka tab 'Bills & reminders', klik '+ Tambah Tagihan', masukkan nama tagihan, tanggal jatuh tempo, dan nominal. Sakuwise akan menampilkan hitungan mundur otomatis di halaman Overview.",
+    q: "How do I set up recurring bills and reminders?",
+    a: "Go to the 'Bills & Reminders' tab, click '+ Add Bill', and specify the bill name, due date, and amount. Sakuwise will track upcoming due dates and display an automated countdown on your Overview dashboard.",
   },
   {
-    q: "Apakah ada versi mobile app Sakuwise?",
-    a: "Sakuwise saat ini tersedia sebagai Progressive Web App (PWA) yang bisa diinstal di smartphone kamu. Buka sakuwise.id di browser HP, lalu pilih 'Add to Home Screen'. Versi native iOS/Android sedang dalam pengembangan.",
+    q: "Is there a mobile app for Sakuwise?",
+    a: "Sakuwise is built as a Progressive Web App (PWA) optimized for mobile browsers. Open sakuwise.id on your phone and tap 'Add to Home Screen' for an instant app experience. Dedicated iOS and Android native apps are also in development.",
   },
 ];
 
 const guides = [
   {
     icon: Wallet,
-    title: "Metode Saku Anggaran 50/30/20",
-    desc: "Alokasikan 50% kebutuhan pokok, 30% keinginan, 20% tabungan.",
+    title: "50/30/20 Budgeting Pocket Rule",
+    desc: "Allocate 50% for essentials, 30% for lifestyle wants, and 20% for savings.",
     color: "bg-[#E8EFEA]",
     iconColor: "text-[#244833]",
   },
   {
     icon: TrendingUp,
-    title: "Cara Membaca Grafik Pengeluaran",
-    desc: "Pahami tren harian dan bulanan untuk keputusan lebih bijak.",
+    title: "How to Read Expense Charts",
+    desc: "Understand daily and monthly spending trends to make smarter money decisions.",
     color: "bg-[#FEF3E2]",
     iconColor: "text-[#9A5B15]",
   },
   {
     icon: Target,
-    title: "Strategi Target Tabungan Efektif",
-    desc: "Pecah target besar menjadi kontribusi kecil yang konsisten.",
+    title: "Effective Savings Target Strategy",
+    desc: "Break down large financial goals into consistent, manageable contributions.",
     color: "bg-[#EAE8F2]",
     iconColor: "text-[#4B3B70]",
   },
   {
     icon: Smartphone,
-    title: "Menggunakan Sakuwise di HP",
-    desc: "Instal sebagai PWA untuk akses cepat tanpa buka browser.",
+    title: "Using Sakuwise on Your Phone",
+    desc: "Install as a PWA on your home screen for quick single-tap access on the go.",
     color: "bg-[#F5EFE6]",
     iconColor: "text-[#71542B]",
   },
@@ -99,10 +99,10 @@ export default function HelpView() {
         </div>
         <div>
           <h2 className="text-base font-bold text-[#1E3A2B]">
-            Pusat Bantuan & Dukungan Sakuwise
+            Sakuwise Help & Support Center
           </h2>
           <p className="text-xs text-[#596D5F] mt-0.5">
-            Ada pertanyaan? Temukan jawabannya di sini, atau hubungi tim kami langsung.
+            Have questions? Find answers below, or get in touch with our support team directly.
           </p>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function HelpView() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <BookOpen className="w-4 h-4 text-[#4D7A5E]" />
-          <h3 className="text-sm font-bold text-[#1E3A2B]">Panduan Cepat</h3>
+          <h3 className="text-sm font-bold text-[#1E3A2B]">Quick Guides</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {guides.map((g, i) => {
@@ -120,7 +120,7 @@ export default function HelpView() {
               <button
                 key={i}
                 type="button"
-                onClick={() => alert(`Panduan "${g.title}" akan tersedia segera!`)}
+                onClick={() => alert(`The "${g.title}" guide will be available soon!`)}
                 className="flex items-start gap-4 p-5 bg-white rounded-2xl border border-[#E7EDE7] shadow-2xs hover:border-[#B8CEBC] hover:shadow-md transition-all text-left group cursor-pointer"
               >
                 <div className={`w-10 h-10 rounded-xl ${g.color} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
@@ -141,7 +141,7 @@ export default function HelpView() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <MessageCircle className="w-4 h-4 text-[#4D7A5E]" />
-          <h3 className="text-sm font-bold text-[#1E3A2B]">Pertanyaan yang Sering Diajukan</h3>
+          <h3 className="text-sm font-bold text-[#1E3A2B]">Frequently Asked Questions</h3>
         </div>
         <div className="bg-white rounded-2xl border border-[#E7EDE7] shadow-2xs overflow-hidden divide-y divide-[#F2F5F2]">
           {faqs.map((f, i) => (
@@ -176,27 +176,27 @@ export default function HelpView() {
         <div className="bg-white rounded-2xl p-6 border border-[#E7EDE7] shadow-2xs">
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-4 h-4 text-[#4D7A5E]" />
-            <h3 className="text-sm font-bold text-[#1E3A2B]">Kirim Pesan ke Tim Sakuwise</h3>
+            <h3 className="text-sm font-bold text-[#1E3A2B]">Send a Message to Sakuwise Team</h3>
           </div>
           <p className="text-xs text-[#718576] mb-4">
-            Kami akan membalas dalam 1×24 jam di hari kerja.
+            We typically respond within 24 hours on business days.
           </p>
 
           {contactSent ? (
             <div className="p-4 rounded-xl bg-[#E7F6EC] border border-[#C6E6D0] text-xs text-[#20743E] font-semibold flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#E08C38]" />
-              Pesan terkirim! Kami akan membalas segera. Terima kasih, {user?.name || "Kamu"}!
+              Message sent! We will reply to your registered email shortly. Thank you, {user?.name || "there"}!
             </div>
           ) : (
             <form onSubmit={handleContact} className="space-y-3">
               <div>
                 <label className="text-[11px] font-bold text-[#677C6D] uppercase tracking-wider block mb-1">
-                  Pesan
+                  Message
                 </label>
                 <textarea
                   required
                   rows={4}
-                  placeholder="Deskripsikan masalah atau pertanyaanmu..."
+                  placeholder="Describe your question or issue in detail..."
                   value={contactMsg}
                   onChange={(e) => setContactMsg(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-[#D7E2D9] text-xs text-[#1E3A2B] placeholder:text-gray-400 focus:outline-none focus:border-[#224431] bg-[#FAF8F5] resize-none"
@@ -206,7 +206,7 @@ export default function HelpView() {
                 type="submit"
                 className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#224431] hover:bg-[#163323] transition-colors cursor-pointer"
               >
-                Kirim Pesan
+                Send Message
               </button>
             </form>
           )}
@@ -222,10 +222,10 @@ export default function HelpView() {
               <div>
                 <p className="text-xs font-bold text-[#1E3A2B]">Email Support</p>
                 <a
-                  href="mailto:halo@sakuwise.id"
+                  href="mailto:support@sakuwise.id"
                   className="text-xs text-[#4D7A5E] hover:underline font-medium"
                 >
-                  halo@sakuwise.id
+                  support@sakuwise.id
                 </a>
               </div>
             </div>
@@ -237,8 +237,8 @@ export default function HelpView() {
                 <Shield className="w-4 h-4 text-[#9A5B15]" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#1E3A2B]">Privasi & Keamanan</p>
-                <p className="text-xs text-[#718576]">Data dienkripsi AES-256</p>
+                <p className="text-xs font-bold text-[#1E3A2B]">Privacy & Security</p>
+                <p className="text-xs text-[#718576]">AES-256 encrypted storage</p>
               </div>
             </div>
           </div>
@@ -246,10 +246,10 @@ export default function HelpView() {
           <div className="bg-[#EBF1EC] rounded-2xl p-5 border border-[#DCE5DE]">
             <div className="flex items-start gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-[#E08C38] fill-[#E08C38] flex-shrink-0 mt-0.5" />
-              <p className="text-xs font-bold text-[#1E3A2B]">Coba AI Assistant</p>
+              <p className="text-xs font-bold text-[#1E3A2B]">Try AI Assistant</p>
             </div>
             <p className="text-[11px] text-[#596D5F] leading-relaxed">
-              Tanyakan langsung ke AI Sakuwise untuk saran pengelolaan keuanganmu yang personal.
+              Ask Sakuwise AI directly for personalized financial budgeting advice anytime.
             </p>
           </div>
         </div>

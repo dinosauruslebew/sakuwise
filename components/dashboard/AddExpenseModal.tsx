@@ -1,29 +1,46 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Check } from "lucide-react";
-import { useFinance, todayISO } from "@/context/FinanceContext";
+import { X, Check, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { useFinance, todayISO, type TransactionType } from "@/context/FinanceContext";
 
-interface AddExpenseModalProps {
+interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultType?: TransactionType;
 }
 
-export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProps) {
+const INCOME_CATEGORIES = [
+  "Monthly Salary",
+  "Allowance / Uang Bulanan",
+  "Side Job / Freelance",
+  "Bonus & Rewards",
+  "Investment Return",
+  "Gift",
+  "Other Income",
+];
+
+export default function AddTransactionModal({
+  isOpen,
+  onClose,
+  defaultType = "expense",
+}: AddTransactionModalProps) {
   const { categories, addTransaction } = useFinance();
 
+  const [txType, setTxType] = useState<TransactionType>(defaultType);
   const [amountStr, setAmountStr] = useState("");
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [incomeCategory, setIncomeCategory] = useState(INCOME_CATEGORIES[0]);
   const [date, setDate] = useState(() => todayISO());
   const [note, setNote] = useState("");
+  const [addToIncome, setAddToIncome] = useState(false);
   const [error, setError] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   if (!isOpen) return null;
 
-  // Fall back to the first category if none is chosen yet or the chosen one was deleted
-  const activeCategory = categories.some((c) => c.name === category)
+  const activeExpenseCategory = categories.some((c) => c.name === category)
     ? category
     : categories[0]?.name ?? "";
 
@@ -33,6 +50,7 @@ export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProp
     setNote("");
     setError("");
     setDate(todayISO());
+    setAddToIncome(false);
   };
 
   const handleClose = () => {
@@ -44,21 +62,35 @@ export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProp
     e.preventDefault();
     const cleanAmount = parseInt(amountStr.replace(/[^0-9]/g, ""), 10);
 
-    if (!activeCategory) {
-      setError("Add a budget category first in Monthly Budget.");
+    if (!cleanAmount || cleanAmount <= 0) {
+      setError("Please enter a valid amount greater than 0.");
       return;
     }
 
+    if (!name.trim()) {
+      setError(txType === "expense" ? "Please enter a description for the expense." : "Please enter the income source.");
+      return;
+    }
+
+    if (txType === "expense" && !activeExpenseCategory) {
+      setError("Please add at least one budget pocket in Monthly Budget first.");
+      return;
+    }
+
+    const chosenCategory = txType === "expense" ? activeExpenseCategory : incomeCategory;
+
     const result = addTransaction({
-      name,
+      name: name.trim(),
       amount: cleanAmount,
-      category: activeCategory,
+      category: chosenCategory,
       date,
-      note,
+      note: note.trim() || undefined,
+      type: txType,
+      addToIncome: txType === "income" ? addToIncome : false,
     });
 
     if (!result.ok) {
-      setError(result.error || "Could not save this expense.");
+      setError(result.error || "Could not save this transaction.");
       return;
     }
 
@@ -72,13 +104,14 @@ export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-[#DCE4DD] animate-in zoom-in-95 duration-150">
+        
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#F0F4F0]">
           <div>
-            <h3 className="text-base font-bold text-[#1E3A2B]">Add an expense</h3>
-            <p className="text-xs text-[#718576]">A few seconds now. More clarity later.</p>
+            <h3 className="text-base font-bold text-[#1E3A2B]">Record Transaction</h3>
+            <p className="text-xs text-[#718576]">Log your everyday cash flow with precision.</p>
           </div>
           <button
             type="button"
@@ -95,15 +128,57 @@ export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProp
             <div className="w-12 h-12 rounded-full bg-[#E7F6EC] text-[#20743E] flex items-center justify-center mb-3">
               <Check className="w-6 h-6 stroke-[3]" />
             </div>
-            <p className="text-sm font-bold text-[#1E3A2B]">Pengeluaran Berhasil Dicatat!</p>
-            <p className="text-xs text-[#6B8071] mt-1">Saldo dan batas harian telah diperbarui.</p>
+            <p className="text-sm font-bold text-[#1E3A2B]">
+              {txType === "expense" ? "Expense Recorded!" : "Income Added!"}
+            </p>
+            <p className="text-xs text-[#6B8071] mt-1">
+              {txType === "expense"
+                ? "Pocket budget and total balance updated."
+                : "Total balance increased successfully."}
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            {/* Amount input */}
+            
+            {/* Top Toggle: [ Expense ] & [ Income ] */}
+            <div className="grid grid-cols-2 p-1 bg-[#F0F4F1] rounded-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setTxType("expense");
+                  setError("");
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  txType === "expense"
+                    ? "bg-white text-[#B4491F] shadow-xs"
+                    : "text-[#627768] hover:text-[#1E3A2B]"
+                }`}
+              >
+                <ArrowDownCircle className="w-4 h-4" />
+                <span>Expense (Pengeluaran)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTxType("income");
+                  setError("");
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  txType === "income"
+                    ? "bg-white text-[#20743E] shadow-xs"
+                    : "text-[#627768] hover:text-[#1E3A2B]"
+                }`}
+              >
+                <ArrowUpCircle className="w-4 h-4" />
+                <span>Income (Pemasukan)</span>
+              </button>
+            </div>
+
+            {/* Amount Input */}
             <div>
               <label className="text-[11px] font-bold text-[#677C6D] uppercase tracking-wider block mb-1">
-                Amount *
+                {txType === "expense" ? "Expense Amount *" : "Income Amount *"}
               </label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#1E3A2B]">
@@ -120,49 +195,85 @@ export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProp
                     const raw = e.target.value.replace(/[^0-9]/g, "");
                     setAmountStr(raw ? parseInt(raw, 10).toLocaleString("id-ID") : "");
                   }}
-                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-[#D5E1D7] text-lg font-extrabold text-[#1E3A2B] focus:outline-none focus:border-[#224431] focus:ring-1 focus:ring-[#224431] bg-[#FAF8F5]"
+                  className={`w-full pl-11 pr-4 py-2.5 rounded-xl border text-lg font-extrabold focus:outline-none bg-[#FAF8F5] ${
+                    txType === "expense"
+                      ? "border-[#D5E1D7] text-[#1E3A2B] focus:border-[#B4491F]"
+                      : "border-[#CDE7D5] text-[#20743E] focus:border-[#20743E]"
+                  }`}
                 />
               </div>
             </div>
 
-            {/* What was it for */}
+            {/* Description / Source */}
             <div>
               <label className="text-[11px] font-bold text-[#677C6D] uppercase tracking-wider block mb-1">
-                What was it for? *
+                {txType === "expense" ? "What was it for? *" : "Income Source / Title *"}
               </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Lunch at campus"
+                placeholder={txType === "expense" ? "e.g. Lunch at campus" : "e.g. Freelance Web Design"}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5E1D7] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431] bg-white"
               />
             </div>
 
-            {/* Category */}
+            {/* Category / Source Type */}
             <div>
               <label className="text-[11px] font-bold text-[#677C6D] uppercase tracking-wider block mb-1">
-                Category *
+                {txType === "expense" ? "Budget Pocket Category *" : "Income Category *"}
               </label>
-              <select
-                value={activeCategory}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5E1D7] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431] bg-white cursor-pointer"
-              >
-                {categories.length === 0 && <option value="">No categories yet</option>}
-                {categories.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              {txType === "expense" ? (
+                <select
+                  value={activeExpenseCategory}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5E1D7] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431] bg-white cursor-pointer"
+                >
+                  {categories.length === 0 && <option value="">No budget pockets yet</option>}
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name} {c.group ? `(${c.group})` : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <select
+                  value={incomeCategory}
+                  onChange={(e) => setIncomeCategory(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5E1D7] text-xs font-semibold text-[#1E3A2B] focus:outline-none focus:border-[#224431] bg-white cursor-pointer"
+                >
+                  {INCOME_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
+
+            {/* Income Specific Option: Add to Monthly Allowance */}
+            {txType === "income" && (
+              <div className="p-3 bg-[#E7F6EC] rounded-xl border border-[#CDEED5] flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-[#20743E]">Add to Monthly Budget Pool</p>
+                  <p className="text-[10px] text-[#557B60]">
+                    Increases your total monthly allowance budget directly.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={addToIncome}
+                  onChange={(e) => setAddToIncome(e.target.checked)}
+                  className="w-4 h-4 accent-[#20743E] rounded cursor-pointer"
+                />
+              </div>
+            )}
 
             {/* Date */}
             <div>
               <label className="text-[11px] font-bold text-[#677C6D] uppercase tracking-wider block mb-1">
-                Date
+                Transaction Date
               </label>
               <input
                 type="date"
@@ -180,7 +291,7 @@ export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProp
               </label>
               <textarea
                 rows={2}
-                placeholder="Add a little detail"
+                placeholder="Add optional notes or receipt details"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl border border-[#D5E1D7] text-xs font-medium text-[#1E3A2B] focus:outline-none bg-white resize-none"
@@ -204,18 +315,21 @@ export default function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProp
               </button>
               <button
                 type="submit"
-                className="w-1/2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#224431] hover:bg-[#163323] transition-colors shadow-sm cursor-pointer"
+                className={`w-1/2 py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-colors shadow-sm cursor-pointer ${
+                  txType === "expense"
+                    ? "bg-[#224431] hover:bg-[#163323]"
+                    : "bg-[#20743E] hover:bg-[#15592E]"
+                }`}
               >
-                Save expense
+                {txType === "expense" ? "Save Expense" : "Save Income"}
               </button>
             </div>
-
-            <p className="text-[11px] text-center text-[#7E8F82]">
-              Required: amount, description, and category.
-            </p>
           </form>
         )}
       </div>
     </div>
   );
 }
+
+// Backward compatibility alias
+export { AddTransactionModal as AddExpenseModal };
